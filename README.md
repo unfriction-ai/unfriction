@@ -5,6 +5,10 @@ without tool calls and reports its task, final response, and execution state.
 
 Requires Go 1.26 or newer.
 
+Release automation and public Homebrew distribution are being implemented in
+issue #3. See [release policy, setup, and installation](docs/releases.md).
+Development builds report `unfriction dev`; release builds embed their version.
+
 ```sh
 go build -buildvcs=false -o unfriction ./cmd/unfriction
 ./unfriction inspect fixtures/first-run.jsonl

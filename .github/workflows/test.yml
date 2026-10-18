@@ -1,14 +1,91 @@
 name: Test
 on: [push, pull_request]
+concurrency:
+  group: test-release-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
   test:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      candidate: ${{ steps.plan.outputs.candidate }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go test -v ./...
       - run: go vet ./...
+      - name: Plan semantic release without publishing
+        id: plan
+        shell: bash
+        run: |
+          go run ./cmd/release -mode plan > release-plan.json
+          version=$(jq -r .version release-plan.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "candidate=${version:-0.0.0}" >> "$GITHUB_OUTPUT"
+      - name: Build macOS release candidates
+        env:
+          VERSION: ${{ steps.plan.outputs.candidate }}
+        run: go run ./cmd/release -mode build -version "$VERSION"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-candidate
+          path: |
+            dist/
+            release-plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  macos:
+    needs: test
+    strategy:
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-candidate
+      - name: Install candidate through Homebrew and inspect fixture
+        env:
+          VERSION: ${{ needs.test.outputs.candidate }}
+        run: bash .github/scripts/smoke-homebrew.sh local
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test.outputs.version != ''
+    needs: [test, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-candidate
+      - name: Publish verified artifacts and update public tap
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
+          SOURCE_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.test.outputs.version }}
+        run: bash .github/scripts/publish.sh
+
+  public-install:
+    needs: [test, release]
+    strategy:
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install published release without credentials
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+        run: bash .github/scripts/smoke-homebrew.sh public
