@@ -1,0 +1,4 @@
+{"timestamp":"2026-01-01T00:00:00.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"00000000-0000-4000-8000-000000000001"}}
+{"timestamp":"2026-01-01T00:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"Reply with the word ready.","images":[],"local_images":[],"text_elements":[]}}
+{"timestamp":"2026-01-01T00:00:02.000Z","type":"event_msg","payload":{"type":"agent_message","message":"ready","phase":"final_answer"}}
+{"timestamp":"2026-01-01T00:00:03.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"00000000-0000-4000-8000-000000000001","last_agent_message":"ready"}}
