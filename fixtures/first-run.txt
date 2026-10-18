@@ -1,0 +1,8 @@
+Task:
+Reply with the word ready.
+
+Final response:
+ready
+
+Execution state: COMPLETED
+Completion describes execution termination, not verified task success.

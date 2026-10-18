@@ -9,11 +9,13 @@ import (
 	"github.com/unfriction-ai/unfriction/internal/report"
 )
 
-func NewCommand() *cobra.Command {
+func NewCommand(version string) *cobra.Command {
 	root := &cobra.Command{
 		Use: "unfriction", Short: "Inspect recorded coding-agent runs",
+		Version:       version,
 		SilenceErrors: true, SilenceUsage: true,
 	}
+	root.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 	root.AddCommand(&cobra.Command{
 		Use: "inspect <trace.jsonl>", Short: "Inspect one Codex task run without tool calls",
 		Args: cobra.ExactArgs(1),

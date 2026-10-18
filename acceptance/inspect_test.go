@@ -78,11 +78,34 @@ func TestImportCompletedCodexRunWithoutAcquisitions(t *testing.T) {
 	}
 }
 
-func buildBinary(t *testing.T) string {
+func TestReleaseVersion(t *testing.T) {
+	for _, tc := range []struct {
+		name, version string
+		buildFlags    []string
+	}{
+		{name: "development build", version: "dev"},
+		{name: "release build", version: "0.1.0", buildFlags: []string{"-ldflags", "-X main.version=0.1.0"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Logf("Given a %s with version %s.", tc.name, tc.version)
+			binary := buildBinary(t, tc.buildFlags...)
+			t.Log("\tWhen I invoke 'unfriction --version'.")
+			output, err := exec.Command(binary, "--version").CombinedOutput()
+			want := "unfriction " + tc.version + "\n"
+			if err != nil || string(output) != want {
+				t.Fatalf("\t%s\tThen it should report %q, but got %q (error: %v)", failed, want, output, err)
+			}
+			t.Logf("\t%s\tThen it should report the version embedded in the binary.", succeed)
+		})
+	}
+}
+
+func buildBinary(t *testing.T, buildFlags ...string) string {
 	t.Helper()
 
 	binary := filepath.Join(t.TempDir(), "unfriction")
-	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, "./cmd/unfriction")
+	args := append([]string{"build", "-buildvcs=false", "-o", binary}, buildFlags...)
+	build := exec.Command("go", append(args, "./cmd/unfriction")...)
 	build.Dir = ".."
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build application: %v\n%s", err, output)
