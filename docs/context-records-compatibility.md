@@ -42,30 +42,24 @@ coverage disclosures. This result does not justify making unrelated records or
 multi-turn histories permissive. Compaction is covered by its CLI regression
 fixture; it was not a first-failure category in the automatically detected sample.
 
-## Reproduction
+## How the comparison was performed
 
-Keep a private JSON manifest outside this repository:
+The 2026-10-19 comparison used a **private**, locally selected manifest of twenty
+Codex and twenty Claude Code histories. It snapshotted each input once, ran both
+the baseline and candidate unfriction binaries against identical snapshots with
+automatic format detection, and summarized the **first error category and line**
+or successful import for each run. Runs were time-limited; only aggregated
+categories, line numbers, and a corpus digest were committed.
 
-```json
-[
-  {"family": "codex", "path": "/private/path/to/history.jsonl"},
-  {"family": "claude-code", "path": "/private/path/to/another-history.jsonl"}
-]
-```
+The helper used for this one-off experiment was deliberately removed from the
+repository. No maintained batch-comparison command is currently provided. To
+repeat this method, keep the manifest and trace snapshots outside the source
+repository, compare the same set of inputs against both binaries, sanitize the
+results, and preserve a digest so different runs can be distinguished. Never
+commit raw traces, private paths, prompts, commands, or error bodies.
 
-Provide exactly twenty distinct histories for each family, then run:
-
-```sh
-python3 scripts/compatibility.py \
-  --manifest /private/path/to/forty-histories.json \
-  --before /private/path/to/baseline-binary \
-  --after /private/path/to/candidate-binary \
-  --output /private/path/to/aggregate-results.json
-```
-
-The script snapshots each input for the two invocations, preserves automatic
-format selection, imposes a per-invocation timeout, and records only allowlisted
-aggregate diagnostic categories and source line numbers. It never writes source
-contents, source paths, commands, hook output, or raw errors to the report.
-Once the original manifest is supplied, rerun it to close the original-corpus
-verification gap rather than presenting this secondary sample as identical.
+**Reproducibility limitation:** the original forty-history manifest was not
+retained in this repository. The recorded aggregates and corpus digest remain
+useful historical evidence but are not enough to reconstruct the private corpus
+or prove that it matches the original experiment. Repeated evaluation tooling
+should be proposed separately if it becomes a recurring need.
