@@ -12,10 +12,13 @@ import (
 )
 
 type event struct {
-	Type      string `json:"type"`
-	SessionID string `json:"sessionId"`
-	Sidechain bool   `json:"isSidechain"`
-	Message   struct {
+	Type       string          `json:"type"`
+	UUID       string          `json:"uuid"`
+	Parent     json.RawMessage `json:"parentUuid"`
+	Attachment json.RawMessage `json:"attachment"`
+	SessionID  string          `json:"sessionId"`
+	Sidechain  bool            `json:"isSidechain"`
+	Message    struct {
 		Role       string          `json:"role"`
 		Content    json.RawMessage `json:"content"`
 		StopReason string          `json:"stop_reason"`
@@ -39,6 +42,8 @@ func Parse(input io.Reader) (run.Run, error) {
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	session := ""
+	var pointers []navigationPointer
+	var nodes []navigationNode
 	for line := 1; scanner.Scan(); line++ {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
@@ -52,7 +57,7 @@ func Parse(input io.Reader) (run.Run, error) {
 		}
 		fail := func(message string) (run.Run, error) { return run.Run{}, fmt.Errorf("line %d: %s", line, message) }
 		switch e.Type {
-		case "user", "assistant":
+		case "user", "assistant", "last-prompt", "attachment":
 		case "file-history-snapshot", "progress", "queue-operation":
 			continue
 		default:
@@ -68,6 +73,25 @@ func Parse(input io.Reader) (run.Run, error) {
 			session = e.SessionID
 		} else if session != e.SessionID {
 			return fail("multiple sessions are unsupported")
+		}
+		if e.Type == "last-prompt" {
+			leaf, err := validateLastPrompt(scanner.Bytes())
+			if err != nil {
+				return fail(err.Error())
+			}
+			pointers = append(pointers, navigationPointer{id: leaf, line: line})
+			continue
+		}
+		nodes = append(nodes, navigationNode{id: e.UUID, parent: e.Parent, line: line})
+		if e.Type == "attachment" {
+			if strings.TrimSpace(e.UUID) == "" {
+				return fail("SessionStart hook requires a nonempty node ID")
+			}
+			if err := validateSessionHook(e.Attachment); err != nil {
+				return fail(err.Error())
+			}
+			r.Coverage = append(r.Coverage, run.Coverage{SourceLine: line, Summary: "Session-start hook recorded; output may supply context and is not interpreted."})
+			continue
 		}
 		if r.ExecutionState == run.Completed {
 			return fail("message outside active run")
@@ -148,6 +172,9 @@ func Parse(input io.Reader) (run.Run, error) {
 	}
 	if r.Task == "" {
 		return run.Run{}, fmt.Errorf("trace does not contain a task")
+	}
+	if err := validateNavigation(pointers, nodes); err != nil {
+		return run.Run{}, err
 	}
 	return r, nil
 }

@@ -1,0 +1,5 @@
+{"type": "last-prompt", "leafUuid": "event-1", "sessionId": "session-1"}
+{"type": "user", "uuid": "event-1", "sessionId": "session-1", "version": "2.1.302", "timestamp": "2026-10-19T00:00:00Z", "message": {"role": "user", "content": "Read README.md and report the project name."}, "parentUuid": null}
+{"type": "assistant", "uuid": "event-2", "sessionId": "session-1", "version": "2.1.302", "timestamp": "2026-10-19T00:00:01Z", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "call-1", "name": "Read", "input": {"file_path": "README.md"}}], "stop_reason": "tool_use"}, "parentUuid": "event-1"}
+{"type": "user", "uuid": "event-3", "sessionId": "session-1", "version": "2.1.302", "timestamp": "2026-10-19T00:00:02Z", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "call-1", "content": "# Example\n"}]}, "parentUuid": "event-2"}
+{"type": "assistant", "uuid": "event-4", "sessionId": "session-1", "version": "2.1.302", "timestamp": "2026-10-19T00:00:03Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "The project is Example."}], "stop_reason": "end_turn"}, "parentUuid": "event-3"}

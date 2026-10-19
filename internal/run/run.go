@@ -15,6 +15,7 @@ const (
 
 type Run struct {
 	Events         []Event
+	Coverage       []Coverage
 	Task           string
 	FinalResponse  string
 	ExecutionState ExecutionState
@@ -95,4 +96,11 @@ func (r Run) MissingObservations() []string {
 		}
 	}
 	return missing
+}
+
+// Coverage discloses recognized but uninterpreted context without retaining its
+// sensitive contents or attributing it to an agent-selected acquisition.
+type Coverage struct {
+	SourceLine int
+	Summary    string
 }

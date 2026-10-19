@@ -49,6 +49,11 @@ full-session importer. Reduce recordings to one task first; see
 [fixture provenance and input contracts](fixtures/README.md) for the precise
 supported variants and sanitization limitations.
 
+Recognized environment state, opaque compaction, and session-start hooks produce
+explicit context-coverage notices without exposing their contents or attributing
+them to the agent. Navigation bookkeeping is accepted only for a verified linear
+turn. See [record-specific limits](fixtures/context-records/README.md).
+
 Context events retain source order and correlate observations by request ID.
 Missing observations are reported explicitly, including in completed runs.
 `COMPLETED` requires explicit termination evidence; it does not establish either
