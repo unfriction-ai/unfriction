@@ -14,6 +14,10 @@ func TestFormatSelection(t *testing.T) {
 		fail bool
 	}{
 		{"default", []string{"inspect", "../../fixtures/codex-acquisition.jsonl"}, "Acquisition a1", false},
+		{"default claude", []string{"inspect", "../../fixtures/claude-acquisition.jsonl"}, "Acquisition a1", false},
+		{"explicit auto", []string{"inspect", "--format", "auto", "../../fixtures/claude-acquisition.jsonl"}, "Acquisition a1", false},
+		{"wrong override", []string{"inspect", "--format", "codex", "../../fixtures/claude-acquisition.jsonl"}, "unsupported event", true},
+		{"help explains default", []string{"inspect", "--help"}, "Automatically detect", false},
 		{"claude", []string{"inspect", "--format", "claude-code", "../../fixtures/claude-acquisition.jsonl"}, "Acquisition a1", false},
 		{"unknown", []string{"inspect", "--format", "unknown", "does-not-exist"}, "unsupported format", true},
 		{"help", []string{"inspect", "--help"}, "claude-code", false},

@@ -78,6 +78,40 @@ is convenient for these replacements; the cross-agent contract is behavioral
 (task, acquisition, associated observation, final response, completion), not a
 requirement that real agents produce identical text.
 
+## Trace-family selection
+
+`unfriction inspect <file>` defaults to automatic detection (`--format auto`).
+Explicit `--format codex` and `--format claude-code` bypass detection entirely;
+only the chosen adapter validates the input. No adapter retries are performed.
+
+The detector reads at most **65,536 bytes (64 KiB)** and examines at most **64
+nonblank complete records** from that prefix. Blank lines consume bytes but not
+records; malformed nonblank lines count toward the record budget. A trailing
+unterminated line is eligible at EOF below the byte limit; a line cut by the byte
+limit is not classified. The full bytes read, including unexamined records and
+partial lines, are replayed before the remaining input to preserve the trace.
+
+Structural evidence is deliberately narrow:
+
+- Codex: top-level `type=event_msg` or `type=response_item` and an object `payload`.
+- Claude Code: top-level `type=user` or `type=assistant`, an object `message`, and
+  a nonempty string `sessionId`.
+
+Metadata/housekeeping (such as `session_meta` or `file-history-snapshot`) supplies
+no family evidence. Other unrecognized or malformed records also supply none;
+they are not removed and remain subject to adapter validation. Filenames,
+extensions, text content, and a common `type` field alone are never evidence.
+
+All eligible records within the prefix are checked, even after a family is found.
+Evidence for both families fails as ambiguous. No evidence fails as unknown, or
+as prefix-limit exhaustion if either budget is reached. Those diagnostics suggest
+an explicit `--format`. Read failures abort selection. Conflicting or invalid
+records beyond the detection budget are still read and validated by the selected
+adapter; detection does not promise that the complete input is supported.
+
+Both M2 fixtures below and the original M1 fixture are detected automatically.
+The existing adapter contracts and normalized reports remain unchanged.
+
 ## M2 input contracts and limits
 
 Both formats use UTF-8 JSONL, one object per nonblank line, at most 4 MiB per line.
@@ -87,7 +121,7 @@ line numbers remain in the model as provenance. Results may arrive out of reques
 order and are associated by ID. Multiple reads are accepted without modeling
 modification actions or acting feedback loops.
 
-### Codex (`--format codex`, the default)
+### Codex (`--format codex` override)
 
 The M1 lifecycle rules above still apply. In addition, between task and final:
 
