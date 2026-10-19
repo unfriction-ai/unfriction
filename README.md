@@ -72,6 +72,24 @@ Inspection never executes recorded commands or applies changes. Tool errors are
 reported as observed evidence, not verified task outcomes. Missing action results
 remain explicit even when execution completed.
 
+Inspect repeated acquisition and modification within one task:
+
+```sh
+./unfriction inspect fixtures/claude-repeated.jsonl
+```
+
+There is no fixed repetition count: both adapters preserve repeated requests and
+feedback, including three or more acquisitions and actions to the same file.
+Reads and actions need not alternate, and feedback may arrive after later requests.
+Local IDs (`a1`, `a2`, ... and `act1`, `act2`, ...) identify each request independently
+of its target. An error followed by another attempt remains recorded evidence;
+the report does not infer why the agent continued or whether the task succeeded.
+The Claude example comes from a reduced real recording. Codex repetition is
+currently covered by synthetic regression sequences; two real repeated Codex
+extracts have been located but use a structured record format the adapter does
+not yet support. See
+[repeated-sequence provenance](fixtures/README.md#m4-repeated-sequence-evidence).
+
 All events retain source order and correlate observations/results by request ID.
 Missing observations are reported explicitly, including in completed runs.
 `COMPLETED` requires explicit termination evidence; it does not establish either
@@ -96,12 +114,13 @@ The Cobra CLI in `internal/cli` uses `internal/traceformat` for automatic select
 or selects `internal/codex` or `internal/claude` explicitly.
 Both adapters return the vendor-independent `internal/run` model, rendered by
 `internal/report`. The event stream distinguishes context acquisition from supported file-modification
-attempts. General action classification, repeated acting loops, metrics, comparisons,
+attempts. General action classification, automatic loop segmentation, metrics, comparisons,
 and outcome verification remain out of scope.
 
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
-vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3, and observed tool-variant fixtures.
+vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3,
+repeated Claude sequence, and observed tool-variant fixtures.
 
 When detection or adapter validation fails, the CLI appends a link to an editable
 [public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).
