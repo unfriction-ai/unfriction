@@ -1,0 +1,6 @@
+{"timestamp": "2026-06-20T00:00:00Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-1"}}
+{"timestamp": "2026-06-20T00:00:01Z", "type": "event_msg", "payload": {"type": "user_message", "message": "Read README.md and report the project name."}}
+{"timestamp": "2026-06-20T00:00:02Z", "type": "response_item", "payload": {"type": "function_call", "id": "item-1", "name": "exec_command", "arguments": "{\"cmd\": \"cat README.md\", \"workdir\": \"/workspace/example\", \"yield_time_ms\": 1000, \"max_output_tokens\": 1000}", "call_id": "call-1"}}
+{"timestamp": "2026-06-20T00:00:03Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call-1", "output": "Chunk ID: example\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 3\nOutput:\n# Example\n"}}
+{"timestamp": "2026-06-20T00:00:04Z", "type": "event_msg", "payload": {"type": "agent_message", "message": "The project is Example.", "phase": "final_answer"}}
+{"timestamp": "2026-06-20T00:00:05Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-1", "last_agent_message": "The project is Example."}}

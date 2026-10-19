@@ -31,3 +31,8 @@ brew test "$formula"
 test "$(unfriction --version)" = "unfriction $VERSION"
 unfriction inspect fixtures/first-run.jsonl > "$RUNNER_TEMP/inspect-actual.txt"
 diff -u fixtures/first-run.txt "$RUNNER_TEMP/inspect-actual.txt"
+
+unfriction inspect fixtures/codex-acquisition.jsonl > "$RUNNER_TEMP/codex-acquisition-actual.txt"
+diff -u fixtures/acquisition.txt "$RUNNER_TEMP/codex-acquisition-actual.txt"
+unfriction inspect --format claude-code fixtures/claude-acquisition.jsonl > "$RUNNER_TEMP/claude-acquisition-actual.txt"
+diff -u fixtures/acquisition.txt "$RUNNER_TEMP/claude-acquisition-actual.txt"
