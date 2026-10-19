@@ -1,0 +1,17 @@
+Task:
+Read repository context and update the project heading.
+
+Run events:
+1. Acquisition a1: GUIDE.md
+2. Observation for a1:
+# Example
+3. Action act1: Modify README.md
+4. Result for act1:
+Success. Updated the following files:
+M README.md
+
+Final response:
+Updated the project heading.
+
+Execution state: COMPLETED
+Completion describes execution termination, not verified task success.

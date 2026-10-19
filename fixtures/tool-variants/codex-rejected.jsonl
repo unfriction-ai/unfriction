@@ -1,0 +1,6 @@
+{"type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-1"}}
+{"type": "event_msg", "payload": {"type": "user_message", "message": "Update README.md."}}
+{"type": "response_item", "payload": {"type": "custom_tool_call", "call_id": "call-1", "name": "apply_patch", "status": "completed", "input": "*** Begin Patch\n*** Update File: README.md\n@@\n-# Example\n+# Updated\n*** End Patch"}}
+{"type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call-1", "output": "patch rejected by user"}}
+{"type": "event_msg", "payload": {"type": "agent_message", "message": "The patch was rejected.", "phase": "final_answer"}}
+{"type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-1", "last_agent_message": "The patch was rejected."}}

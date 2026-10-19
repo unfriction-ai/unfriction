@@ -20,6 +20,8 @@ type event struct {
 		Name             string  `json:"name"`
 		CallID           string  `json:"call_id"`
 		Arguments        string  `json:"arguments"`
+		Input            string  `json:"input"`
+		Status           string  `json:"status"`
 		Output           *string `json:"output"`
 		TurnID           string  `json:"turn_id"`
 		Message          string  `json:"message"`
@@ -76,10 +78,37 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 				if p.CallID == "" && p.Name == "" {
 					return run.Run{}, fmt.Errorf("line %d: tool calls are not supported without an acquisition name and ID", line)
 				}
-				if json.Unmarshal([]byte(p.Arguments), &args) != nil || p.Name != "exec_command" || !readCommand.MatchString(args.Cmd) {
-					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported acquisition; expected exec_command with cat <path>", line))
+				if json.Unmarshal([]byte(p.Arguments), &args) != nil || p.Name != "exec_command" || acquisitionTarget(args.Cmd) == "" {
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported acquisition or action; expected exec_command with cat <path> or sed -n '1,220p' <path>, or a supported apply_patch custom call", line))
 				}
-				err = r.Acquire(p.CallID, strings.TrimPrefix(args.Cmd, "cat "), line)
+				err = r.Acquire(p.CallID, acquisitionTarget(args.Cmd), line)
+			case "custom_tool_call":
+				if p.Name != "apply_patch" || p.Status != "completed" {
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported action; expected completed apply_patch custom tool call", line))
+				}
+				target, create, parseErr := patchTarget(p.Input)
+				if parseErr != nil {
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: %w", line, parseErr))
+				}
+				if create {
+					err = r.Create(p.CallID, target, line)
+				} else {
+					err = r.Act(p.CallID, target, line)
+				}
+			case "custom_tool_call_output":
+				if p.Output == nil {
+					return run.Run{}, fmt.Errorf("line %d: missing action result output", line)
+				}
+				for _, request := range r.Events {
+					if request.SourceID == p.CallID && request.Kind == run.Acquisition {
+						return run.Run{}, fmt.Errorf("line %d: action result references acquisition", line)
+					}
+				}
+				body, isError, parseErr := patchOutput(*p.Output)
+				if parseErr != nil {
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: %w", line, parseErr))
+				}
+				err = r.RecordResult(p.CallID, body, isError, line)
 			case "function_call_output":
 				if p.Output == nil {
 					return run.Run{}, fmt.Errorf("line %d: missing observation output", line)

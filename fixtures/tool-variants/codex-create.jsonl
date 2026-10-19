@@ -1,0 +1,8 @@
+{"type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-1"}}
+{"type": "event_msg", "payload": {"type": "user_message", "message": "Read context and create CREATED.md."}}
+{"type": "response_item", "payload": {"type": "function_call", "call_id": "call-1", "name": "exec_command", "arguments": "{\"cmd\": \"sed -n '1,220p' GUIDE.md\"}"}}
+{"type": "response_item", "payload": {"type": "function_call_output", "call_id": "call-1", "output": "Chunk ID: example\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 3\nOutput:\n# Example\n"}}
+{"type": "response_item", "payload": {"type": "custom_tool_call", "call_id": "call-2", "name": "apply_patch", "status": "completed", "input": "*** Begin Patch\n*** Add File: CREATED.md\n+# Example\n*** End Patch"}}
+{"type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call-2", "output": "Exit code: 0\nWall time: 0.2 seconds\nOutput:\nSuccess. Updated the following files:\nA CREATED.md\n"}}
+{"type": "event_msg", "payload": {"type": "agent_message", "message": "Created the example file.", "phase": "final_answer"}}
+{"type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-1", "last_agent_message": "Created the example file."}}

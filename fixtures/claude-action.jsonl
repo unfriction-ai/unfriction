@@ -1,0 +1,6 @@
+{"type": "user", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "user", "content": "Read repository context and update the project heading."}}
+{"type": "assistant", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "read-1", "name": "Read", "input": {"file_path": "README.md"}}], "stop_reason": "tool_use"}}
+{"type": "user", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "read-1", "content": "# Example\n", "is_error": false}]}}
+{"type": "assistant", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "edit-1", "name": "Edit", "input": {"file_path": "README.md", "old_string": "# Example", "new_string": "# Updated", "replace_all": false}}], "stop_reason": "tool_use"}}
+{"type": "user", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "edit-1", "content": "The file README.md has been updated successfully."}]}}
+{"type": "assistant", "sessionId": "session-1", "version": "2.1.234", "message": {"role": "assistant", "content": [{"type": "text", "text": "Updated the project heading."}], "stop_reason": "end_turn"}}

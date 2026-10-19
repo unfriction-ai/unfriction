@@ -31,6 +31,13 @@ func NewCommand(version string) *cobra.Command {
 			"conflicting evidence fails without guessing. Use --format codex or\n" +
 			"--format claude-code to bypass detection; the selected adapter still validates\n" +
 			"the entire trace. Unsupported variants fail without retrying another adapter.\n\n" +
+			"Reports context acquisition and attempted file modifications in source order.\n" +
+			"Supported modifications: Codex single-file Add File or Update File patches;\n" +
+			"Claude Edit replacement or recorded offset/new_text attempts. Read results\n" +
+			"may be text or one base64 PNG/JPEG image; image content is not interpreted.\n" +
+			"Codex reads support cat <path> and sed -n '1,220p' <path>; Claude uses Read.\n" +
+			"Only the documented reduced trace variants are supported. Inspection never\n" +
+			"executes commands or applies changes. Completion is not verified task success.\n\n" +
 			"Compatibility errors offer a prefilled public GitHub issue URL. The CLI makes\n" +
 			"no network request and submits nothing. Review the draft and redact any trace\n" +
 			"you choose to attach; only bounded, sanitized metadata is prefilled.",

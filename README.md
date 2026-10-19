@@ -1,7 +1,7 @@
 # unfriction
 
 Inspect a recorded coding-agent task run: its task, requested repository context,
-observations, final response, and execution state. Supports reduced single-turn
+observations, attempted file modifications and their results, final response, and execution state. Supports reduced single-turn
 Codex and Claude Code JSONL traces. Requires Go 1.26 or newer.
 
 ```sh
@@ -43,9 +43,14 @@ the full trace and never falls back to another adapter on failure.
 The existing no-tool path remains available:
 `unfriction inspect fixtures/first-run.jsonl`.
 
-M2 supports the observed Codex `exec_command` form `cat <one-literal-path>` and
-Claude Code `Read` with text results. It is not a general shell classifier or a
-full-session importer. Reduce recordings to one task first; see
+The acquisition path supports the observed Codex `exec_command` form
+`cat <one-literal-path>` and Claude Code `Read` with text results. M3 additionally supports the recorded
+`sed -n '1,220p' <path>` read, single-file Codex `apply_patch` creation/updates
+(including deletion-only hunks), and Claude Code `Edit` replacement or recorded offset-shaped attempts. Claude image
+reads return explicit PNG/JPEG observation metadata; image content is not
+interpreted. Recorded user rejection remains visible as a result. See the
+[observed tool variants](fixtures/tool-variants/README.md) for exact limits.
+It is not a general shell classifier or a full-session importer. Reduce recordings to one task first; see
 [fixture provenance and input contracts](fixtures/README.md) for the precise
 supported variants and sanitization limitations.
 
@@ -54,7 +59,20 @@ explicit context-coverage notices without exposing their contents or attributing
 them to the agent. Navigation bookkeeping is accepted only for a verified linear
 turn. See [record-specific limits](fixtures/context-records/README.md).
 
-Context events retain source order and correlate observations by request ID.
+Inspect an acquisition followed by an attempted modification:
+
+```sh
+./unfriction inspect fixtures/codex-action.jsonl
+./unfriction inspect fixtures/claude-action.jsonl
+```
+
+These reports show acquisition, observation, action target, and corresponding
+result under `Run events:`. Actions without a prior acquisition are supported.
+Inspection never executes recorded commands or applies changes. Tool errors are
+reported as observed evidence, not verified task outcomes. Missing action results
+remain explicit even when execution completed.
+
+All events retain source order and correlate observations/results by request ID.
 Missing observations are reported explicitly, including in completed runs.
 `COMPLETED` requires explicit termination evidence; it does not establish either
 complete trace capture or independently verified engineering success. Valid
@@ -77,13 +95,13 @@ selection. See [testing guidance](AGENTS.md).
 The Cobra CLI in `internal/cli` uses `internal/traceformat` for automatic selection,
 or selects `internal/codex` or `internal/claude` explicitly.
 Both adapters return the vendor-independent `internal/run` model, rendered by
-`internal/report`. The acquisition phase sits between the task and final response;
-no action classification, repeated acting loops, metrics, comparisons, or outcome
-verification are included.
+`internal/report`. The event stream distinguishes context acquisition from supported file-modification
+attempts. General action classification, repeated acting loops, metrics, comparisons,
+and outcome verification remain out of scope.
 
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
-vet, release candidate builds, and Homebrew smoke checks for all three fixtures.
+vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3, and observed tool-variant fixtures.
 
 When detection or adapter validation fails, the CLI appends a link to an editable
 [public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).

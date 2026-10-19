@@ -1,0 +1,6 @@
+{"type": "user", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "user", "content": "Read README.md and attempt an edit."}}
+{"type": "assistant", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "assistant", "stop_reason": "tool_use", "content": [{"type": "tool_use", "id": "call-1", "name": "Read", "input": {"file_path": "README.md"}}]}}
+{"type": "user", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "call-1", "content": "# Example\n"}]}}
+{"type": "assistant", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "assistant", "stop_reason": "tool_use", "content": [{"type": "tool_use", "id": "call-2", "name": "Edit", "input": {"file_path": "README.md", "offset": "0", "new_text": "# Updated\n"}}]}}
+{"type": "user", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "call-2", "is_error": true, "content": "<tool_use_error>Error: No such tool available: Edit. Edit is disabled for this session, in subagents as well as here.</tool_use_error>"}]}}
+{"type": "assistant", "version": "2.1.278", "sessionId": "session-1", "message": {"role": "assistant", "stop_reason": "end_turn", "content": [{"type": "text", "text": "The edit tool was unavailable."}]}}
