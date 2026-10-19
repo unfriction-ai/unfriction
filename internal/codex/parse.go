@@ -16,17 +16,19 @@ import (
 type event struct {
 	Type    string `json:"type"`
 	Payload struct {
-		Type             string  `json:"type"`
-		Name             string  `json:"name"`
-		CallID           string  `json:"call_id"`
-		Arguments        string  `json:"arguments"`
-		Input            string  `json:"input"`
-		Status           string  `json:"status"`
-		Output           *string `json:"output"`
-		TurnID           string  `json:"turn_id"`
-		Message          string  `json:"message"`
-		Phase            string  `json:"phase"`
-		LastAgentMessage string  `json:"last_agent_message"`
+		Type             string          `json:"type"`
+		Name             string          `json:"name"`
+		CallID           string          `json:"call_id"`
+		Arguments        string          `json:"arguments"`
+		Input            string          `json:"input"`
+		Status           string          `json:"status"`
+		Output           *string         `json:"output"`
+		TurnID           string          `json:"turn_id"`
+		Message          string          `json:"message"`
+		Phase            string          `json:"phase"`
+		LastAgentMessage string          `json:"last_agent_message"`
+		ThreadID         string          `json:"thread_id"`
+		Item             json.RawMessage `json:"item"`
 	} `json:"payload"`
 }
 
@@ -46,6 +48,8 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	var turnID string
 	var hasTask, hasFinal bool
+	var structured, legacy bool
+	var items completedItems
 	for line := 1; scanner.Scan(); line++ {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
@@ -60,6 +64,25 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 			return run.Run{}, fmt.Errorf("line %d: missing event type", line)
 		}
 		p := e.Payload
+		if e.Type == "event_msg" && p.Type == "item_completed" {
+			if legacy {
+				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: mixed legacy and structured representations are unsupported; supply one representation", line))
+			}
+			structured = true
+			if err := items.consume(&r, p.Item, p.ThreadID, p.TurnID, turnID, line); err != nil {
+				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
+			}
+			hasTask, hasFinal = r.Task != "", r.FinalResponse != ""
+			continue
+		}
+		legacyTool := e.Type == "response_item" && (strings.HasSuffix(p.Type, "_call") || strings.HasSuffix(p.Type, "_call_output"))
+		legacyMessage := e.Type == "event_msg" && (p.Type == "user_message" || p.Type == "agent_message")
+		if legacyTool || legacyMessage {
+			if structured {
+				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: mixed legacy and structured representations are unsupported; supply one representation", line))
+			}
+			legacy = true
+		}
 		if e.Type == "world_state" || (e.Type == "response_item" && p.Type == "compaction") {
 			notice, err := contextRecord(scanner.Bytes(), line)
 			if err != nil {
@@ -68,7 +91,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 			r.Coverage = append(r.Coverage, notice)
 			continue
 		}
-		if e.Type == "response_item" && (strings.HasSuffix(p.Type, "_call") || strings.HasSuffix(p.Type, "_call_output")) {
+		if legacyTool {
 			var err error
 			switch p.Type {
 			case "function_call":
