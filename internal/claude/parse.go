@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 	"github.com/unfriction-ai/unfriction/internal/run"
 )
 
@@ -37,7 +38,15 @@ type block struct {
 	Text      string          `json:"text"`
 }
 
-func Parse(input io.Reader) (run.Run, error) {
+func Parse(input io.Reader) (result run.Run, parseErr error) {
+	currentLine := 0
+	var currentRecord diagnostic.Record
+	reportFailure := true
+	defer func() {
+		if parseErr != nil && reportFailure {
+			parseErr = diagnostic.Adapter(parseErr, currentLine, currentRecord)
+		}
+	}()
 	r := run.Run{ExecutionState: run.Incomplete}
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
@@ -48,6 +57,8 @@ func Parse(input io.Reader) (run.Run, error) {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
 		}
+		currentLine = line
+		currentRecord = diagnostic.RecordFromJSON(scanner.Bytes())
 		var e event
 		if err := json.Unmarshal(scanner.Bytes(), &e); err != nil {
 			return run.Run{}, fmt.Errorf("line %d: invalid event: %w", line, err)
@@ -56,15 +67,18 @@ func Parse(input io.Reader) (run.Run, error) {
 			return run.Run{}, fmt.Errorf("line %d: missing event type", line)
 		}
 		fail := func(message string) (run.Run, error) { return run.Run{}, fmt.Errorf("line %d: %s", line, message) }
+		unsupported := func(message string) (run.Run, error) {
+			return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: %s", line, message))
+		}
 		switch e.Type {
 		case "user", "assistant", "last-prompt", "attachment":
 		case "file-history-snapshot", "progress", "queue-operation":
 			continue
 		default:
-			return fail("unsupported event " + e.Type + "; supply a reduced single turn")
+			return unsupported("unsupported event " + e.Type + "; supply a reduced single turn")
 		}
 		if e.Sidechain {
-			return fail("sidechain runs are unsupported")
+			return unsupported("sidechain runs are unsupported")
 		}
 		if e.SessionID == "" {
 			return fail("missing session ID")
@@ -72,12 +86,12 @@ func Parse(input io.Reader) (run.Run, error) {
 		if session == "" {
 			session = e.SessionID
 		} else if session != e.SessionID {
-			return fail("multiple sessions are unsupported")
+			return unsupported("multiple sessions are unsupported")
 		}
 		if e.Type == "last-prompt" {
 			leaf, err := validateLastPrompt(scanner.Bytes())
 			if err != nil {
-				return fail(err.Error())
+				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
 			}
 			pointers = append(pointers, navigationPointer{id: leaf, line: line})
 			continue
@@ -88,7 +102,7 @@ func Parse(input io.Reader) (run.Run, error) {
 				return fail("SessionStart hook requires a nonempty node ID")
 			}
 			if err := validateSessionHook(e.Attachment); err != nil {
-				return fail(err.Error())
+				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
 			}
 			r.Coverage = append(r.Coverage, run.Coverage{SourceLine: line, Summary: "Session-start hook recorded; output may supply context and is not interpreted."})
 			continue
@@ -121,7 +135,7 @@ func Parse(input io.Reader) (run.Run, error) {
 			switch b.Type {
 			case "tool_use":
 				if e.Type != "assistant" || b.Name != "Read" {
-					return fail("unsupported acquisition; expected assistant Read")
+					return unsupported("unsupported acquisition; expected assistant Read")
 				}
 				hasCall = true
 				err = r.Acquire(b.ID, b.Input.Path, line)
@@ -136,18 +150,18 @@ func Parse(input io.Reader) (run.Run, error) {
 				err = r.Observe(b.ToolUseID, text, line)
 			case "text":
 				if e.Type != "assistant" {
-					return fail("unsupported user text block; supply one task string")
+					return unsupported("unsupported user text block; supply one task string")
 				}
 				texts = append(texts, b.Text)
 			case "thinking":
 				if e.Type != "assistant" {
-					return fail("unsupported user thinking block")
+					return unsupported("unsupported user thinking block")
 				}
 			default:
-				return fail("unsupported content block " + b.Type)
+				return unsupported("unsupported content block " + b.Type)
 			}
 			if err != nil {
-				return fail(err.Error())
+				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
 			}
 		}
 		switch e.Message.StopReason {
@@ -164,16 +178,19 @@ func Parse(input io.Reader) (run.Run, error) {
 			r.FinalResponse = final
 			r.ExecutionState = run.Completed
 		default:
-			return fail("unsupported stop reason " + e.Message.StopReason)
+			return unsupported("unsupported stop reason " + e.Message.StopReason)
 		}
 	}
 	if err := scanner.Err(); err != nil {
+		reportFailure = false
 		return run.Run{}, fmt.Errorf("read trace: %w", err)
 	}
 	if r.Task == "" {
 		return run.Run{}, fmt.Errorf("trace does not contain a task")
 	}
 	if err := validateNavigation(pointers, nodes); err != nil {
+		currentLine = 0
+		currentRecord = diagnostic.Record{}
 		return run.Run{}, err
 	}
 	return r, nil

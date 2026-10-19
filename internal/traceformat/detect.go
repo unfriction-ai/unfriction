@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 )
 
 const (
@@ -61,7 +63,7 @@ func Detect(input io.Reader) (format string, replay io.Reader, err error) {
 		}
 	}
 	if codex && claude {
-		return "", nil, fmt.Errorf("ambiguous trace format: prefix contains Codex and Claude Code evidence; %s", overrideHint)
+		return "", nil, diagnostic.Detection(diagnostic.AmbiguousFormat, fmt.Errorf("ambiguous trace format: prefix contains Codex and Claude Code evidence; %s", overrideHint))
 	}
 	switch {
 	case codex:
@@ -69,9 +71,9 @@ func Detect(input io.Reader) (format string, replay io.Reader, err error) {
 	case claude:
 		format = "claude-code"
 	case byteLimit || records == MaxPrefixRecords:
-		return "", nil, fmt.Errorf("trace format undetermined: prefix limit reached (%d bytes or %d nonblank records); %s", MaxPrefixBytes, MaxPrefixRecords, overrideHint)
+		return "", nil, diagnostic.Detection(diagnostic.UndeterminedFormat, fmt.Errorf("trace format undetermined: prefix limit reached (%d bytes or %d nonblank records); %s", MaxPrefixBytes, MaxPrefixRecords, overrideHint))
 	default:
-		return "", nil, fmt.Errorf("unknown trace format: no distinctive structural evidence; %s", overrideHint)
+		return "", nil, diagnostic.Detection(diagnostic.UnknownFormat, fmt.Errorf("unknown trace format: no distinctive structural evidence; %s", overrideHint))
 	}
 	return format, io.MultiReader(bytes.NewReader(prefix), input), nil
 }

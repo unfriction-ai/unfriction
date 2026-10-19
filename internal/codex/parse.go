@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 	"github.com/unfriction-ai/unfriction/internal/run"
 )
 
@@ -29,7 +30,15 @@ type event struct {
 
 // Parse reconstructs a single turn. A final answer does not prove execution
 // completion: only a matching task_complete event can set Completed.
-func Parse(input io.Reader) (run.Run, error) {
+func Parse(input io.Reader) (result run.Run, parseErr error) {
+	currentLine := 0
+	var currentRecord diagnostic.Record
+	reportFailure := true
+	defer func() {
+		if parseErr != nil && reportFailure {
+			parseErr = diagnostic.Adapter(parseErr, currentLine, currentRecord)
+		}
+	}()
 	r := run.Run{ExecutionState: run.Incomplete}
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
@@ -39,6 +48,8 @@ func Parse(input io.Reader) (run.Run, error) {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
 		}
+		currentLine = line
+		currentRecord = diagnostic.RecordFromJSON(scanner.Bytes())
 		var e event
 		if err := json.Unmarshal(scanner.Bytes(), &e); err != nil {
 			return run.Run{}, fmt.Errorf("line %d: invalid event: %w", line, err)
@@ -66,7 +77,7 @@ func Parse(input io.Reader) (run.Run, error) {
 					return run.Run{}, fmt.Errorf("line %d: tool calls are not supported without an acquisition name and ID", line)
 				}
 				if json.Unmarshal([]byte(p.Arguments), &args) != nil || p.Name != "exec_command" || !readCommand.MatchString(args.Cmd) {
-					return run.Run{}, fmt.Errorf("line %d: unsupported acquisition; expected exec_command with cat <path>", line)
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported acquisition; expected exec_command with cat <path>", line))
 				}
 				err = r.Acquire(p.CallID, strings.TrimPrefix(args.Cmd, "cat "), line)
 			case "function_call_output":
@@ -77,11 +88,11 @@ func Parse(input io.Reader) (run.Run, error) {
 				// Keep the observation body, never infer run completion from the exit code.
 				_, body, ok := strings.Cut(*p.Output, "\nOutput:\n")
 				if !ok || !strings.HasPrefix(*p.Output, "Chunk ID:") || !strings.Contains(*p.Output, "\nProcess exited with code ") {
-					return run.Run{}, fmt.Errorf("line %d: unsupported observation envelope", line)
+					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported observation envelope", line))
 				}
 				err = r.Observe(p.CallID, body, line)
 			default:
-				return run.Run{}, fmt.Errorf("line %d: unsupported tool event %q", line, p.Type)
+				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported tool event %q", line, p.Type))
 			}
 			if err != nil {
 				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
@@ -97,14 +108,14 @@ func Parse(input io.Reader) (run.Run, error) {
 					continue
 				}
 			}
-			return run.Run{}, fmt.Errorf("line %d: unsupported event %q/%q", line, e.Type, p.Type)
+			return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported event %q/%q", line, e.Type, p.Type))
 		}
 		switch p.Type {
 		case "token_count", "agent_reasoning": // Known non-lifecycle records.
 			continue
 		case "task_started":
 			if turnID != "" {
-				return run.Run{}, fmt.Errorf("line %d: multiple turns are not supported; supply one turn", line)
+				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: multiple turns are not supported; supply one turn", line))
 			}
 			if p.TurnID == "" {
 				return run.Run{}, fmt.Errorf("line %d: missing turn ID", line)
@@ -134,10 +145,11 @@ func Parse(input io.Reader) (run.Run, error) {
 				r.ExecutionState = run.Completed
 			}
 		default:
-			return run.Run{}, fmt.Errorf("line %d: unsupported lifecycle event %q", line, p.Type)
+			return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported lifecycle event %q", line, p.Type))
 		}
 	}
 	if err := scanner.Err(); err != nil {
+		reportFailure = false
 		return run.Run{}, fmt.Errorf("read trace: %w", err)
 	}
 	if !hasTask {

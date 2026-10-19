@@ -84,3 +84,16 @@ verification are included.
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
 vet, release candidate builds, and Homebrew smoke checks for all three fixtures.
+
+When detection or adapter validation fails, the CLI appends a link to an editable
+[public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).
+The URL includes the running binary's version, selected agent and best-effort
+version, failure category, and allowlisted record names/source line. Unknown or
+unsafe values are marked explicitly. An explicit `--format` identifies your
+selected adapter, not proof of the trace's producer.
+
+The CLI makes no network request, requires no GitHub token, and submits nothing.
+Review the draft before submitting; GitHub may require sign-in. Prompt text, tool
+output, paths, session IDs, and raw error text are never copied into the URL.
+If you attach a minimal trace yourself, redact it first. Existing diagnostic
+detail remains local on stderr. See [reporting limits](docs/compatibility-reporting.md).
