@@ -42,6 +42,9 @@ diff -u fixtures/codex-action.txt "$RUNNER_TEMP/codex-action-actual.txt"
 unfriction inspect fixtures/claude-action.jsonl > "$RUNNER_TEMP/claude-action-actual.txt"
 diff -u fixtures/claude-action.txt "$RUNNER_TEMP/claude-action-actual.txt"
 
+unfriction inspect fixtures/claude-repeated.jsonl > "$RUNNER_TEMP/claude-repeated-actual.txt"
+diff -u fixtures/claude-repeated.txt "$RUNNER_TEMP/claude-repeated-actual.txt"
+
 for fixture in fixtures/tool-variants/*.jsonl; do
   fixture_name=$(basename "$fixture" .jsonl)
   unfriction inspect "$fixture" > "$RUNNER_TEMP/$fixture_name-actual.txt"

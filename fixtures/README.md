@@ -296,8 +296,62 @@ mutating the sanitized recordings are synthetic negative tests, not additional
 claims of observed vendor variants.
 
 M3 does not evaluate patches, infer engineering outcomes, classify arbitrary shell
-writes, import full sessions, or model repeated acquire/act feedback cycles.
+writes, or import full sessions. Its ordered event model also supports repeated
+acquisitions and actions; the additional coverage below exercises that behavior
+without introducing a loop model.
 
 Additional real, sanitized recordings and precise limits for creation, line
 deletion, user rejection, image reads, and offset-shaped Edit attempts are in
 [the observed tool-variant fixtures](tool-variants/README.md).
+
+## M4 repeated-sequence evidence
+
+`claude-repeated.jsonl` was prepared on 2026-10-19 from an existing real Claude
+Code recording, version `2.1.229`. The selected single task ran on 2026-08-13
+15:04:06–15:07:08 UTC. The private original is not checked in.
+
+Retained source lines: task 201; Read request/result 221/222; Edit request/result
+226/234; Read request/result 251/252; Edit request/result 254/256; final assistant
+response 291 with `stop_reason=end_turn`. Each retained request has its original
+matching result, and their source order is unchanged. Both reads have
+`stop_reason=tool_use`, as do both edits. The retained results omit `is_error`;
+absence does not independently establish success.
+
+The original task contained 21 tool calls; 17 calls and their feedback were
+omitted, along with other content blocks, intermediate assistant text, reasoning,
+usage information, navigation IDs, timestamps, and workspace metadata. The first
+read/edit pair targeted one file, and the second pair targeted another. This
+relationship is preserved as `README.md` and `GUIDE.md`. Thus the fixture proves
+repeated acquisition/action within one task, not rereading the same file or a
+complete account of the original execution.
+
+Task, final response, file contents, result text, paths, session ID, and tool IDs
+are fixed replacement examples. Read inputs retain only `file_path`; edits retain
+the observed replacement fields and `replace_all=false`, with sanitized strings.
+The requests' `tool_use` and final `end_turn` stop reasons are preserved. Only
+allowlisted fields are retained. The displayed task was not the original task,
+and the reported update text is not independent verification of an edit.
+`claude-repeated.txt` is the manually specified expected report.
+
+The public CLI acceptance tests also construct **synthetic** three-repetition
+sequences for both vendors from the M3 fixtures. They assign new request IDs and
+use one repeated target to check that neither adapter deduplicates by path or
+limits repetition to two. Error flags, missing feedback, and late duplicate
+results are deliberate mutations, not additional real-recording evidence.
+Focused tests cover interleaved requests/results, source lines, missing feedback,
+duplicate IDs, orphan results, and unsupported requests. Existing and absent
+target files are checked to establish read-only inspection.
+
+No production changes were needed for these scenarios. The existing event stream
+preserves every request and matching observation/result without imposing strict
+alternation or requiring feedback before subsequent requests. Completion remains
+independent of tool status and missing feedback. Single-task and supported-tool
+limits remain unchanged.
+
+**Open adapter requirement:** a broader second search located two real repeated
+Codex sequences in the newer structured `event_msg/item_completed` representation.
+Their [sanitized extracts and provenance](repeated-evidence/README.md) retain
+combined operation/feedback records without inventing legacy tool calls. The
+current adapter rejects that representation. M4's end-to-end real Codex acceptance
+and distribution smoke coverage remain open; synthetic coverage alone does not
+satisfy them.
