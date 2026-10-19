@@ -43,11 +43,14 @@ the full trace and never falls back to another adapter on failure.
 The existing no-tool path remains available:
 `unfriction inspect fixtures/first-run.jsonl`.
 
-The acquisition path supports the observed Codex `exec_command` form `cat <one-literal-path>` and
-Claude Code `Read` with text results. M3 additionally supports the recorded
-`sed -n '1,220p' <path>` read, a single-file Codex `apply_patch` update, and
-Claude Code `Edit` with `replace_all=false`. It is not a general shell classifier or a
-full-session importer. Reduce recordings to one task first; see
+The acquisition path supports the observed Codex `exec_command` form
+`cat <one-literal-path>` and Claude Code `Read` with text results. M3 additionally supports the recorded
+`sed -n '1,220p' <path>` read, single-file Codex `apply_patch` creation/updates
+(including deletion-only hunks), and Claude Code `Edit` replacement or recorded offset-shaped attempts. Claude image
+reads return explicit PNG/JPEG observation metadata; image content is not
+interpreted. Recorded user rejection remains visible as a result. See the
+[observed tool variants](fixtures/tool-variants/README.md) for exact limits.
+It is not a general shell classifier or a full-session importer. Reduce recordings to one task first; see
 [fixture provenance and input contracts](fixtures/README.md) for the precise
 supported variants and sanitization limitations.
 
@@ -98,7 +101,7 @@ and outcome verification remain out of scope.
 
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
-vet, release candidate builds, and Homebrew smoke checks for the M1, M2, and both M3 fixtures.
+vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3, and observed tool-variant fixtures.
 
 When detection or adapter validation fails, the CLI appends a link to an editable
 [public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).

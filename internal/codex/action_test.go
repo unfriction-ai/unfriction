@@ -34,17 +34,48 @@ func TestPatchGrammar(t *testing.T) {
 		{"empty target", strings.Replace(good, "README.md", "", 1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := patchTarget(tc.input); err == nil {
+			if _, _, err := patchTarget(tc.input); err == nil {
 				t.Fatal("accepted unsupported patch")
 			}
 		})
 	}
-	if target, err := patchTarget(good); err != nil || target != "README.md" {
+	if target, create, err := patchTarget(good); err != nil || create || target != "README.md" {
 		t.Fatalf("%s %v", target, err)
 	}
 	for _, cmd := range []string{"sed -n '1,220p' README.md; pwd", "sed -i '1,220p' README.md", "sed -n '1,220p' README.md other.md", "sed -n '1,220p' $(pwd)", "sed -n '1,221p' README.md"} {
 		if acquisitionTarget(cmd) != "" {
 			t.Fatalf("accepted %s", cmd)
 		}
+	}
+}
+
+func TestCreationAndOneSidedHunks(t *testing.T) {
+	for _, tc := range []struct {
+		name, input string
+		create      bool
+	}{
+		{"create", "*** Begin Patch\n*** Add File: CREATED.md\n+new\n*** End Patch", true},
+		{"delete lines", "*** Begin Patch\n*** Update File: README.md\n@@\n-old\n*** End Patch", false},
+		{"insert lines", "*** Begin Patch\n*** Update File: README.md\n@@\n+new\n*** End Patch", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, create, err := patchTarget(tc.input)
+			if err != nil || create != tc.create {
+				t.Fatalf("create=%v err=%v", create, err)
+			}
+		})
+	}
+	for _, input := range []string{
+		"*** Begin Patch\n*** Add File: CREATED.md\n*** End Patch",
+		"*** Begin Patch\n*** Add File: CREATED.md\n-old\n*** End Patch",
+		"*** Begin Patch\n*** Add File: CREATED.md\n+new\n*** Add File: OTHER.md\n+new\n*** End Patch",
+		"*** Begin Patch\n*** Update File: README.md\n@@\n context\n@@\n+new\n*** End Patch",
+	} {
+		if _, _, err := patchTarget(input); err == nil {
+			t.Fatalf("accepted unsupported patch: %s", input)
+		}
+	}
+	if _, _, err := patchOutput("patch rejected by user\nunknown trailing record"); err == nil {
+		t.Fatal("accepted unknown result envelope")
 	}
 }

@@ -243,19 +243,22 @@ applied, or correct. Broad tool-name-based intent classification is not supporte
   unsupported. This narrow addition allows the actual M3 recording to be used
   without rewriting its read mechanism into an invented `cat` call.
 - `response_item.payload.type=custom_tool_call`, `name=apply_patch`, nonempty
-  `call_id`, `status=completed`, and a string `input` containing one Update File
-  patch. This call status is not execution termination evidence or a result.
+  `call_id`, `status=completed`, and a string `input` containing one Add File or
+  Update File patch. This call status is not execution termination evidence or a result.
 - Patch target paths use the same literal-path character set as `cat`. Each hunk
   starts with bare `@@`, contains only context (` `), removal (`-`), and addition
-  (`+`) lines, and includes both a removal and an addition. Optional final newline
-  is accepted. Adds, deletes, renames, multiple targets, named hunk anchors,
-  end-of-file markers, and other patch variants are unsupported.
+  (`+`) lines, and includes at least one removal or addition. Add File bodies
+  contain only `+` lines (at least one). Optional final newline is accepted.
+  Whole-file deletes, renames, multiple targets, named hunk anchors, end-of-file
+  markers, and other patch variants are unsupported.
 - A matching `custom_tool_call_output` carries a string output starting with
   `Exit code: <integer>`, `Wall time: <number> seconds`, and `Output:` on separate
   lines. The body is preserved, including empty output. A nonzero exit code is
   preserved in the report and marked as a tool-reported error. Zero does not
   establish task success. Function-call and custom-call result kinds cannot be
-  interchanged. Unknown envelopes fail explicitly.
+  interchanged. The exact standalone `patch rejected by user` result is also
+  preserved without inferring execution or task failure. Other unknown envelopes
+  fail explicitly.
 
 ### Claude Code additions
 
@@ -264,8 +267,14 @@ applied, or correct. Broad tool-name-based intent classification is not supporte
   and explicit `replace_all=false`. Empty replacement text is allowed. Unknown
   Edit input fields, missing/null replacement fields, no-op replacements, and
   other modification tools remain unsupported.
-- A matching user `tool_result` carries string content. Optional Boolean
-  `is_error=true` is rendered as tool-reported error evidence; it does not change
+- The observed alternative Edit input has exactly `file_path`, a nonnegative
+  decimal string `offset`, and nonempty string `new_text`. The recording shows a
+  tool-disabled error; this recognizes an attempt, not a proven editing API.
+- A matching user `tool_result` carries string content or, for a Read, a single
+  inline base64 PNG/JPEG image block. Images retain media type and decoded byte
+  count as observations without interpreted content. Mixed/multiple blocks,
+  unsupported media types, remote URLs, and malformed images fail explicitly.
+  Optional Boolean `is_error=true` is rendered as tool-reported error evidence; it does not change
   execution state. An absent or false flag does not independently verify success.
 
 ### Association, reports, and limits
@@ -288,3 +297,7 @@ claims of observed vendor variants.
 
 M3 does not evaluate patches, infer engineering outcomes, classify arbitrary shell
 writes, import full sessions, or model repeated acquire/act feedback cycles.
+
+Additional real, sanitized recordings and precise limits for creation, line
+deletion, user rejection, image reads, and offset-shaped Edit attempts are in
+[the observed tool-variant fixtures](tool-variants/README.md).

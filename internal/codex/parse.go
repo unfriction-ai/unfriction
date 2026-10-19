@@ -86,11 +86,15 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 				if p.Name != "apply_patch" || p.Status != "completed" {
 					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported action; expected completed apply_patch custom tool call", line))
 				}
-				target, parseErr := patchTarget(p.Input)
+				target, create, parseErr := patchTarget(p.Input)
 				if parseErr != nil {
 					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: %w", line, parseErr))
 				}
-				err = r.Act(p.CallID, target, line)
+				if create {
+					err = r.Create(p.CallID, target, line)
+				} else {
+					err = r.Act(p.CallID, target, line)
+				}
 			case "custom_tool_call_output":
 				if p.Output == nil {
 					return run.Run{}, fmt.Errorf("line %d: missing action result output", line)

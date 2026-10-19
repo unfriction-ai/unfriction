@@ -51,7 +51,8 @@ CI runs on pushes and pull requests. It builds candidates once and installs thos
 same archives through Homebrew on fresh Apple Silicon and Intel macOS runners.
 Both installations execute `--version`, `brew test`, and report comparisons for
 the M1 no-tool fixture, both M2 acquisition fixtures, and both M3 read/modification
-fixtures. M3 smoke checks use automatic format detection.
+fixtures, plus the observed tool-variant fixtures. M3 and tool-variant smoke
+checks use automatic format detection.
 The local smoke test rewrites only archive URLs to local files; release checksums
 and the rest of the formula stay unchanged. Non-release commits use candidate
 version `0.0.0`, which is never published.

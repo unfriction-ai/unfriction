@@ -70,3 +70,34 @@ func TestInvalidActionsDoNotMutateRun(t *testing.T) {
 		})
 	}
 }
+
+func TestCreationAndImageEvidencePreserveAssociations(t *testing.T) {
+	r := Run{Task: "read image and create file", ExecutionState: Incomplete}
+	if err := r.Acquire("read", "picture.png", 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.ObserveImage("read", ImageObservation{MediaType: "image/png", ByteLength: 70}, false, 3); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.MissingObservations()) != 0 || r.Events[1].Text != "" || r.Events[1].Image == nil || r.Events[1].AcquisitionID != "a1" || r.Events[1].SourceLine != 3 {
+		t.Fatalf("image not associated: %+v", r)
+	}
+	if err := r.ObserveImage("read", ImageObservation{MediaType: "image/png", ByteLength: 70}, false, 4); err == nil || len(r.Events) != 2 {
+		t.Fatal("accepted duplicate image result")
+	}
+	if err := r.Create("create", "CREATED.md", 4); err != nil {
+		t.Fatal(err)
+	}
+	if r.Events[2].Operation != CreateFile || len(r.MissingResults()) != 1 || r.ExecutionState != Incomplete {
+		t.Fatalf("creation inferred an outcome: %+v", r)
+	}
+	if err := r.ObserveImage("create", ImageObservation{MediaType: "image/png", ByteLength: 70}, false, 5); err == nil || len(r.Events) != 3 {
+		t.Fatal("accepted image as action result")
+	}
+	if err := r.RecordResult("create", "created", false, 5); err != nil {
+		t.Fatal(err)
+	}
+	if r.Events[3].ActionID != r.Events[2].ActionID || r.ExecutionState != Incomplete {
+		t.Fatalf("creation result inferred task outcome: %+v", r)
+	}
+}

@@ -39,3 +39,21 @@ func TestRejectNullActionErrorFlag(t *testing.T) {
 		t.Fatal("accepted null error flag")
 	}
 }
+
+func TestRecordedOffsetEditAttempt(t *testing.T) {
+	good := `{"file_path":"README.md","offset":"1884","new_text":"replacement"}`
+	if target, err := editTarget(json.RawMessage(good)); err != nil || target != "README.md" {
+		t.Fatalf("%s %v", target, err)
+	}
+	for _, input := range []string{
+		strings.Replace(good, `"1884"`, `1884`, 1), strings.Replace(good, `"1884"`, `"-1"`, 1),
+		strings.Replace(good, `"1884"`, `"1.5"`, 1), strings.Replace(good, `"1884"`, `null`, 1),
+		strings.Replace(good, `"replacement"`, `null`, 1), strings.Replace(good, `"replacement"`, `""`, 1),
+		strings.Replace(good, `}`, `,"old_string":"old"}`, 1),
+		strings.Replace(good, `}`, `,"replace_all":false}`, 1),
+	} {
+		if _, err := editTarget(json.RawMessage(input)); err == nil {
+			t.Fatalf("accepted %s", input)
+		}
+	}
+}

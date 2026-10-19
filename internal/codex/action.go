@@ -7,27 +7,44 @@ import (
 	"strings"
 )
 
-// Only the recorded single-file update grammar is supported. This parses the
-// request target; it never opens the target or attempts to apply the patch.
-func patchTarget(input string) (string, error) {
+// patchTarget recognizes one recorded file creation or update. It never opens
+// a target or applies changes. Each update hunk must contain an actual change.
+func patchTarget(input string) (target string, create bool, err error) {
 	lines := strings.Split(strings.TrimSuffix(input, "\n"), "\n")
-	fail := func() (string, error) {
-		return "", fmt.Errorf("unsupported patch; expected one Update File with replacement hunks")
+	fail := func() (string, bool, error) {
+		return "", false, fmt.Errorf("unsupported patch; expected one Add File or Update File with changed hunks")
 	}
-	if len(lines) < 6 || lines[0] != "*** Begin Patch" || lines[len(lines)-1] != "*** End Patch" || !strings.HasPrefix(lines[1], "*** Update File: ") {
+	if len(lines) < 4 || lines[0] != "*** Begin Patch" || lines[len(lines)-1] != "*** End Patch" {
 		return fail()
 	}
-	target := strings.TrimPrefix(lines[1], "*** Update File: ")
+	switch {
+	case strings.HasPrefix(lines[1], "*** Add File: "):
+		create = true
+		target = strings.TrimPrefix(lines[1], "*** Add File: ")
+	case strings.HasPrefix(lines[1], "*** Update File: "):
+		target = strings.TrimPrefix(lines[1], "*** Update File: ")
+	default:
+		return fail()
+	}
 	if !literalPath.MatchString(target) {
 		return fail()
 	}
-	inHunk, removed, added := false, false, false
-	for _, line := range lines[2 : len(lines)-1] {
-		if line == "@@" {
-			if inHunk && (!removed || !added) {
+	body := lines[2 : len(lines)-1]
+	if create {
+		for _, line := range body {
+			if !strings.HasPrefix(line, "+") {
 				return fail()
 			}
-			inHunk, removed, added = true, false, false
+		}
+		return target, true, nil
+	}
+	inHunk, changed := false, false
+	for _, line := range body {
+		if line == "@@" {
+			if inHunk && !changed {
+				return fail()
+			}
+			inHunk, changed = true, false
 			continue
 		}
 		if !inHunk || len(line) == 0 {
@@ -35,18 +52,16 @@ func patchTarget(input string) (string, error) {
 		}
 		switch line[0] {
 		case ' ':
-		case '-':
-			removed = true
-		case '+':
-			added = true
+		case '-', '+':
+			changed = true
 		default:
 			return fail()
 		}
 	}
-	if !inHunk || !removed || !added {
+	if !inHunk || !changed {
 		return fail()
 	}
-	return target, nil
+	return target, false, nil
 }
 
 var literalPath = regexp.MustCompile(`^[a-zA-Z0-9_./][a-zA-Z0-9_./-]*$`)
@@ -64,6 +79,10 @@ func acquisitionTarget(cmd string) string {
 }
 
 func patchOutput(output string) (string, bool, error) {
+	// This exact standalone refusal was observed without an execution envelope.
+	if output == "patch rejected by user" {
+		return output, false, nil
+	}
 	m := patchEnvelope.FindStringSubmatch(output)
 	if m == nil {
 		return "", false, fmt.Errorf("unsupported action result envelope")

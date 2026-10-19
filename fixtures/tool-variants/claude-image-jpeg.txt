@@ -1,0 +1,13 @@
+Task:
+Read picture.jpg.
+
+Context events:
+1. Acquisition a1: picture.jpg
+2. Observation for a1:
+Image: image/jpeg, 599 bytes (content not interpreted)
+
+Final response:
+Read the image.
+
+Execution state: COMPLETED
+Completion describes execution termination, not verified task success.

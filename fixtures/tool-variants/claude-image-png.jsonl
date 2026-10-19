@@ -1,0 +1,4 @@
+{"type": "user", "version": "2.1.294", "sessionId": "session-1", "message": {"role": "user", "content": "Read picture.png."}}
+{"type": "assistant", "version": "2.1.294", "sessionId": "session-1", "message": {"role": "assistant", "stop_reason": "tool_use", "content": [{"type": "tool_use", "id": "call-1", "name": "Read", "input": {"file_path": "picture.png"}}]}}
+{"type": "user", "version": "2.1.294", "sessionId": "session-1", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "call-1", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAEElEQVR4nGL6z8AACAAA//8DCQECWLbVUAAAAABJRU5ErkJggg=="}}]}]}}
+{"type": "assistant", "version": "2.1.294", "sessionId": "session-1", "message": {"role": "assistant", "stop_reason": "end_turn", "content": [{"type": "text", "text": "Read the image."}]}}

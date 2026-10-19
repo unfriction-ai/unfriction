@@ -29,11 +29,26 @@ type Event struct {
 	AcquisitionID string
 	ActionID      string
 	IsError       bool
+	Operation     ActionOperation
+	Image         *ImageObservation
 	Target        string
 	Text          string
 	SourceID      string
 	SourceLine    int
 }
+
+// ImageObservation describes received image data without retaining or interpreting it.
+type ImageObservation struct {
+	MediaType  string
+	ByteLength int
+}
+
+type ActionOperation string
+
+const (
+	ModifyFile ActionOperation = "Modify"
+	CreateFile ActionOperation = "Create"
+)
 
 type EventKind string
 
@@ -133,7 +148,7 @@ func (r *Run) Act(sourceID, target string, line int) error {
 			count++
 		}
 	}
-	r.Events = append(r.Events, Event{Kind: Action, ActionID: fmt.Sprintf("act%d", count+1), Target: target, SourceID: sourceID, SourceLine: line})
+	r.Events = append(r.Events, Event{Kind: Action, Operation: ModifyFile, ActionID: fmt.Sprintf("act%d", count+1), Target: target, SourceID: sourceID, SourceLine: line})
 	return nil
 }
 
@@ -179,4 +194,28 @@ func (r Run) MissingResults() []string {
 		}
 	}
 	return missing
+}
+
+// Create records an attempted file creation, not proof that the file was created.
+func (r *Run) Create(sourceID, target string, line int) error {
+	if err := r.Act(sourceID, target, line); err != nil {
+		return err
+	}
+	r.Events[len(r.Events)-1].Operation = CreateFile
+	return nil
+}
+
+// ObserveImage associates nontext evidence with an acquisition. Image bytes stay
+// at the adapter boundary; the domain retains metadata and source provenance.
+func (r *Run) ObserveImage(sourceID string, image ImageObservation, isError bool, line int) error {
+	if strings.TrimSpace(image.MediaType) == "" || image.ByteLength <= 0 {
+		return fmt.Errorf("invalid image observation metadata")
+	}
+	if err := r.Observe(sourceID, "", line); err != nil {
+		return err
+	}
+	event := &r.Events[len(r.Events)-1]
+	event.Image = &image
+	event.IsError = isError
+	return nil
 }

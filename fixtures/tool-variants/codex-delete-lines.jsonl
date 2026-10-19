@@ -1,0 +1,6 @@
+{"type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-1"}}
+{"type": "event_msg", "payload": {"type": "user_message", "message": "Remove obsolete lines from README.md."}}
+{"type": "response_item", "payload": {"type": "custom_tool_call", "call_id": "call-1", "name": "apply_patch", "status": "completed", "input": "*** Begin Patch\n*** Update File: README.md\n@@\n # Example\n-Obsolete line\n@@\n-Old line\n+New line\n*** End Patch"}}
+{"type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call-1", "output": "Exit code: 0\nWall time: 0.2 seconds\nOutput:\nSuccess. Updated the following files:\nM README.md\n"}}
+{"type": "event_msg", "payload": {"type": "agent_message", "message": "Updated the example file.", "phase": "final_answer"}}
+{"type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-1", "last_agent_message": "Updated the example file."}}

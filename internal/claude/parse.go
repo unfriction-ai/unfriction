@@ -156,15 +156,20 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 				if e.Type != "user" {
 					return fail("tool result must be a user event")
 				}
-				var text string
-				if json.Unmarshal(b.Content, &text) != nil || string(b.Content) == "null" || len(b.Content) == 0 {
-					return fail("observation must be text")
-				}
 				var isError bool
 				if len(b.IsError) > 0 && (string(b.IsError) == "null" || json.Unmarshal(b.IsError, &isError) != nil) {
 					return fail("tool result is_error must be Boolean when present")
 				}
-				err = r.RecordResult(b.ToolUseID, text, isError, line)
+				var text string
+				if json.Unmarshal(b.Content, &text) == nil && string(b.Content) != "null" {
+					err = r.RecordResult(b.ToolUseID, text, isError, line)
+				} else {
+					image, parseErr := imageObservation(b.Content)
+					if parseErr != nil {
+						return fail(parseErr.Error())
+					}
+					err = r.ObserveImage(b.ToolUseID, image, isError, line)
+				}
 			case "text":
 				if e.Type != "assistant" {
 					return unsupported("unsupported user text block; supply one task string")

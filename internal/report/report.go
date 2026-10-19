@@ -24,9 +24,16 @@ func Write(w io.Writer, r run.Run) error {
 			if e.Kind == run.Acquisition {
 				fmt.Fprintf(&b, "%d. Acquisition %s: %s\n", i+1, e.AcquisitionID, e.Target)
 			} else if e.Kind == run.Action {
-				fmt.Fprintf(&b, "%d. Action %s: Modify %s\n", i+1, e.ActionID, e.Target)
+				operation := e.Operation
+				if operation == "" {
+					operation = run.ModifyFile
+				}
+				fmt.Fprintf(&b, "%d. Action %s: %s %s\n", i+1, e.ActionID, operation, e.Target)
 			} else {
 				text := e.Text
+				if e.Image != nil {
+					text = fmt.Sprintf("Image: %s, %d bytes (content not interpreted)", e.Image.MediaType, e.Image.ByteLength)
+				}
 				if text == "" {
 					text = "(empty)"
 				}
