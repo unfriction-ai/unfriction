@@ -181,3 +181,110 @@ bookkeeping. Context-bearing records produce a separate `Context coverage` secti
 with source lines and explicit interpretation limits. They are never reported as
 agent-selected acquisitions or ordinary read observations. This compatibility
 increment does not make full multi-turn histories supported.
+
+## M3 action fixture provenance
+
+Prepared on 2026-10-19 from existing real local recordings. Private originals are
+not checked in; these are reduced extracts, not newly generated runs of the
+replacement task. No changes were replayed while preparing or inspecting them.
+
+| Fixture | Recorded source/version | Selected turn (UTC) | Retained tool pairs |
+| --- | --- | --- | --- |
+| `codex-action.jsonl` | Codex rollout beginning 2026-06-11, `cli_version=0.138.0-alpha.7` | 2026-06-11 18:42:52–18:48:12 | `exec_command` range read; `apply_patch` custom-tool update |
+| `claude-action.jsonl` | Claude Code session, `version=2.1.234` | 2026-08-18 13:12:38–13:13:52 | `Read`; `Edit` with `replace_all=false` |
+
+Codex retains lifecycle records from source lines 57–229, the read request at
+line 76 and its matching result at line 80, and the modification request at line
+174 and its matching result at line 176. The source turn contained 32 tool calls;
+30 calls and their results were omitted. The read used `sed -n '1,220p'` on one repository file; the patch
+updated a different repository file. The replacement targets retain that
+relationship (`GUIDE.md` and `README.md`). The source patch used `*** Begin Patch`,
+one `*** Update File:`, one bare `@@` hunk, and `*** End Patch`. Its custom call
+had `status=completed`; its output used the `Exit code` / `Wall time` / `Output`
+envelope. Separate patch progress events, other tool calls and results, reasoning,
+metadata, and intermediate commentary were removed. In particular, this extract
+omits earlier file creation and subsequent edits: it is not a complete inventory
+or a causal explanation of the original final answer.
+
+Claude retains source lines 6, 18, 19, 33, 34, and 40: task, Read request/result,
+Edit request/result, and final assistant response with `stop_reason=end_turn`.
+The source turn contained five tool calls; three calls and their results were
+omitted. The read and edit targeted the same file; the replacement target preserves that
+relationship. The Read result explicitly carried `is_error=false`; the Edit
+result omitted that field. Other tool calls/results, assistant text, reasoning,
+usage, navigation identifiers, workspace metadata, and bookkeeping were removed.
+
+Both fixtures replace task, paths, contents, final response, and request/session
+IDs with fixed example values. Codex's duplicate completion text is replaced
+consistently. Patch contents are replaced with a small heading replacement using
+the observed single-hunk grammar; Claude old/new strings are replaced consistently.
+Result text is sanitized replacement text, not the original output. Event shapes,
+value types, retained source order, tool names, associations, and termination
+markers come from the recordings. Timestamps and optional arguments are omitted.
+Only allowlisted fields are retained; no private original content is included.
+
+`codex-action.txt` and `claude-action.txt` are the expected reports. Their read
+paths and result text intentionally differ; their acquisition/action/result
+concepts are equivalent. Acceptance tests exercise both automatic detection and
+explicit format overrides and confirm that target files remain unchanged.
+
+## M3 additional input contracts
+
+The M1/M2 contracts still apply. Inspection is read-only: it neither executes
+commands nor opens, validates, or modifies the recorded target files. A recognized
+file-modification request is an attempted action, not proof that it was needed,
+applied, or correct. Broad tool-name-based intent classification is not supported.
+
+### Codex additions
+
+- The recorded read shape `exec_command` with `cmd=sed -n '1,220p' <path>` is
+  accepted in addition to `cat <path>`. The range and quoting are literal; other
+  ranges, flags, multiple paths, shell syntax, and command composition remain
+  unsupported. This narrow addition allows the actual M3 recording to be used
+  without rewriting its read mechanism into an invented `cat` call.
+- `response_item.payload.type=custom_tool_call`, `name=apply_patch`, nonempty
+  `call_id`, `status=completed`, and a string `input` containing one Update File
+  patch. This call status is not execution termination evidence or a result.
+- Patch target paths use the same literal-path character set as `cat`. Each hunk
+  starts with bare `@@`, contains only context (` `), removal (`-`), and addition
+  (`+`) lines, and includes both a removal and an addition. Optional final newline
+  is accepted. Adds, deletes, renames, multiple targets, named hunk anchors,
+  end-of-file markers, and other patch variants are unsupported.
+- A matching `custom_tool_call_output` carries a string output starting with
+  `Exit code: <integer>`, `Wall time: <number> seconds`, and `Output:` on separate
+  lines. The body is preserved, including empty output. A nonzero exit code is
+  preserved in the report and marked as a tool-reported error. Zero does not
+  establish task success. Function-call and custom-call result kinds cannot be
+  interchanged. Unknown envelopes fail explicitly.
+
+### Claude Code additions
+
+- Assistant `tool_use` named `Edit`, with nonempty ID and `input.file_path`,
+  nonempty string `old_string`, string `new_string` different from `old_string`,
+  and explicit `replace_all=false`. Empty replacement text is allowed. Unknown
+  Edit input fields, missing/null replacement fields, no-op replacements, and
+  other modification tools remain unsupported.
+- A matching user `tool_result` carries string content. Optional Boolean
+  `is_error=true` is rendered as tool-reported error evidence; it does not change
+  execution state. An absent or false flag does not independently verify success.
+
+### Association, reports, and limits
+
+Actions receive local IDs `act1`, `act2`, ...; existing acquisitions retain `a1`,
+`a2`, ... . Request IDs must be unique across both kinds. Every result is matched
+to its originating request, while events remain in source order (including block
+order within one Claude message). Original source IDs and line numbers remain in
+the model. The report uses `Run events:` when actions exist; acquisition-only and
+no-tool reports retain their previous text.
+
+An action requires no prior acquisition. Missing action results produce
+`Diagnostic: Result missing for act1`; explicit termination still produces
+`COMPLETED`, and unfinished executions remain `INCOMPLETE`. Neither a final
+response alone in Codex nor a tool result proves termination. Duplicate/unmatched
+results, duplicate IDs, invalid lifecycle order, and unsupported variants fail
+with source-line diagnostics and no partial report. Error fixtures derived by
+mutating the sanitized recordings are synthetic negative tests, not additional
+claims of observed vendor variants.
+
+M3 does not evaluate patches, infer engineering outcomes, classify arbitrary shell
+writes, import full sessions, or model repeated acquire/act feedback cycles.

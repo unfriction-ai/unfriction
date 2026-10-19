@@ -27,12 +27,11 @@ type event struct {
 }
 
 type block struct {
-	Type  string `json:"type"`
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Input struct {
-		Path string `json:"file_path"`
-	} `json:"input"`
+	Type      string          `json:"type"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Input     json.RawMessage `json:"input"`
+	IsError   json.RawMessage `json:"is_error"`
 	ToolUseID string          `json:"tool_use_id"`
 	Content   json.RawMessage `json:"content"`
 	Text      string          `json:"text"`
@@ -134,11 +133,25 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 			var err error
 			switch b.Type {
 			case "tool_use":
-				if e.Type != "assistant" || b.Name != "Read" {
-					return unsupported("unsupported acquisition; expected assistant Read")
+				if e.Type != "assistant" || (b.Name != "Read" && b.Name != "Edit") {
+					return unsupported("unsupported acquisition or action; expected assistant Read or supported Edit")
 				}
 				hasCall = true
-				err = r.Acquire(b.ID, b.Input.Path, line)
+				if b.Name == "Read" {
+					var input struct {
+						Path string `json:"file_path"`
+					}
+					if json.Unmarshal(b.Input, &input) != nil {
+						return fail("invalid Read input")
+					}
+					err = r.Acquire(b.ID, input.Path, line)
+				} else {
+					target, parseErr := editTarget(b.Input)
+					if parseErr != nil {
+						return unsupported(parseErr.Error())
+					}
+					err = r.Act(b.ID, target, line)
+				}
 			case "tool_result":
 				if e.Type != "user" {
 					return fail("tool result must be a user event")
@@ -147,7 +160,11 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 				if json.Unmarshal(b.Content, &text) != nil || string(b.Content) == "null" || len(b.Content) == 0 {
 					return fail("observation must be text")
 				}
-				err = r.Observe(b.ToolUseID, text, line)
+				var isError bool
+				if len(b.IsError) > 0 && (string(b.IsError) == "null" || json.Unmarshal(b.IsError, &isError) != nil) {
+					return fail("tool result is_error must be Boolean when present")
+				}
+				err = r.RecordResult(b.ToolUseID, text, isError, line)
 			case "text":
 				if e.Type != "assistant" {
 					return unsupported("unsupported user text block; supply one task string")
@@ -168,7 +185,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		case "": // A text message without explicit termination does not prove completion.
 		case "tool_use":
 			if !hasCall {
-				return fail("tool_use stop reason without acquisition")
+				return fail("tool_use stop reason without acquisition or action")
 			}
 		case "end_turn":
 			final := strings.Join(texts, "\n")

@@ -36,3 +36,8 @@ unfriction inspect fixtures/codex-acquisition.jsonl > "$RUNNER_TEMP/codex-acquis
 diff -u fixtures/acquisition.txt "$RUNNER_TEMP/codex-acquisition-actual.txt"
 unfriction inspect --format claude-code fixtures/claude-acquisition.jsonl > "$RUNNER_TEMP/claude-acquisition-actual.txt"
 diff -u fixtures/acquisition.txt "$RUNNER_TEMP/claude-acquisition-actual.txt"
+
+unfriction inspect fixtures/codex-action.jsonl > "$RUNNER_TEMP/codex-action-actual.txt"
+diff -u fixtures/codex-action.txt "$RUNNER_TEMP/codex-action-actual.txt"
+unfriction inspect fixtures/claude-action.jsonl > "$RUNNER_TEMP/claude-action-actual.txt"
+diff -u fixtures/claude-action.txt "$RUNNER_TEMP/claude-action-actual.txt"

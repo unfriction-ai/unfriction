@@ -49,7 +49,9 @@ formula URLs, and reproducibility. Acceptance tests execute versioned binaries.
 
 CI runs on pushes and pull requests. It builds candidates once and installs those
 same archives through Homebrew on fresh Apple Silicon and Intel macOS runners.
-Both installations execute `--version`, `brew test`, and the M1 fixture comparison.
+Both installations execute `--version`, `brew test`, and report comparisons for
+the M1 no-tool fixture, both M2 acquisition fixtures, and both M3 read/modification
+fixtures. M3 smoke checks use automatic format detection.
 The local smoke test rewrites only archive URLs to local files; release checksums
 and the rest of the formula stay unchanged. Non-release commits use candidate
 version `0.0.0`, which is never published.
