@@ -7,7 +7,7 @@ Codex and Claude Code JSONL traces. Requires Go 1.26 or newer.
 ```sh
 go build -buildvcs=false -o unfriction ./cmd/unfriction
 ./unfriction inspect fixtures/codex-acquisition.jsonl
-./unfriction inspect --format claude-code fixtures/claude-acquisition.jsonl
+./unfriction inspect fixtures/claude-acquisition.jsonl
 ```
 
 Both examples produce:
@@ -28,7 +28,19 @@ Execution state: COMPLETED
 Completion describes execution termination, not verified task success.
 ```
 
-The default format is `codex`. The existing no-tool path remains available:
+Trace-family detection is automatic by default (`--format auto`). The detector
+reads at most 64 KiB and inspects at most 64 nonblank complete JSONL records for
+unambiguous structural evidence. It checks the whole bounded prefix for conflicts,
+then passes the entire unchanged trace to the selected adapter. Filenames and
+prompt text do not influence selection.
+
+Use `--format codex` or `--format claude-code` to bypass detection for reduced
+traces or troubleshooting. Unknown, ambiguous, or insufficient evidence produces
+a nonzero error suggesting these overrides. Read errors also fail explicitly.
+Recognizing a family does not validate its variant: the selected adapter validates
+the full trace and never falls back to another adapter on failure.
+
+The existing no-tool path remains available:
 `unfriction inspect fixtures/first-run.jsonl`.
 
 M2 supports the observed Codex `exec_command` form `cat <one-literal-path>` and
@@ -42,8 +54,9 @@ Missing observations are reported explicitly, including in completed runs.
 `COMPLETED` requires explicit termination evidence; it does not establish either
 complete trace capture or independently verified engineering success. Valid
 unfinished traces report `INCOMPLETE` and exit zero. Malformed, contradictory,
-unmatched, or unsupported events return a nonzero exit code with a line-numbered
-diagnostic on stderr and no report.
+unmatched, or unsupported events return a nonzero exit code with a diagnostic on
+stderr and no report. Adapter validation errors include the source line where
+applicable.
 
 Run checks:
 
@@ -56,7 +69,8 @@ Acceptance tests build and invoke the real binary against sanitized recordings.
 Focused unit tests cover parsing, association, ordering, rendering, and CLI format
 selection. See [testing guidance](AGENTS.md).
 
-The Cobra CLI in `internal/cli` selects `internal/codex` or `internal/claude`.
+The Cobra CLI in `internal/cli` uses `internal/traceformat` for automatic selection,
+or selects `internal/codex` or `internal/claude` explicitly.
 Both adapters return the vendor-independent `internal/run` model, rendered by
 `internal/report`. The acquisition phase sits between the task and final response;
 no action classification, repeated acting loops, metrics, comparisons, or outcome

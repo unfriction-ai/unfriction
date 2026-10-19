@@ -69,7 +69,8 @@ func TestImportCompletedCodexRunWithoutAcquisitions(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Log("\tWhen I import the trace with 'unfriction inspect'.")
-			output, err := exec.Command(binary, "inspect", path).CombinedOutput()
+			// These cases exercise Codex validation even when input has no detectable family.
+			output, err := exec.Command(binary, "inspect", "--format", "codex", path).CombinedOutput()
 			if err == nil || !strings.Contains(string(output), tc.diagnostic) || strings.Contains(string(output), "Execution state:") {
 				t.Fatalf("\t%s\tThen it should fail with %q and no report, but got %v\n%s", failed, tc.diagnostic, err, output)
 			}
