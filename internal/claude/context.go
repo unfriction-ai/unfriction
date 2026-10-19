@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 )
 
 func validateLastPrompt(data []byte) (string, error) {
@@ -26,7 +28,7 @@ func validateSessionHook(raw json.RawMessage) error {
 			return fmt.Errorf("invalid SessionStart hook field %s; expected text", key)
 		}
 		if (key == "type" && *text != "hook_success") || (key == "hookEvent" && *text != "SessionStart") {
-			return fmt.Errorf("unsupported attachment variant; only SessionStart hook_success is supported")
+			return diagnostic.Unsupported(fmt.Errorf("unsupported attachment variant; only SessionStart hook_success is supported"))
 		}
 		if (key == "hookName" || key == "toolUseID") && strings.TrimSpace(*text) == "" {
 			return fmt.Errorf("missing SessionStart hook identifier")

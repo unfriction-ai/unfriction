@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unfriction-ai/unfriction/internal/claude"
 	"github.com/unfriction-ai/unfriction/internal/codex"
+	"github.com/unfriction-ai/unfriction/internal/compatreport"
+	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 	"github.com/unfriction-ai/unfriction/internal/report"
 	"github.com/unfriction-ai/unfriction/internal/run"
 	"github.com/unfriction-ai/unfriction/internal/traceformat"
@@ -27,7 +30,10 @@ func NewCommand(version string) *cobra.Command {
 			"structural evidence in the first 64 KiB and 64 nonblank records. Unknown or\n" +
 			"conflicting evidence fails without guessing. Use --format codex or\n" +
 			"--format claude-code to bypass detection; the selected adapter still validates\n" +
-			"the entire trace. Unsupported variants fail without retrying another adapter.",
+			"the entire trace. Unsupported variants fail without retrying another adapter.\n\n" +
+			"Compatibility errors offer a prefilled public GitHub issue URL. The CLI makes\n" +
+			"no network request and submits nothing. Review the draft and redact any trace\n" +
+			"you choose to attach; only bounded, sanitized metadata is prefilled.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if format != "auto" && format != "codex" && format != "claude-code" {
@@ -38,12 +44,13 @@ func NewCommand(version string) *cobra.Command {
 				return fmt.Errorf("open trace: %w", err)
 			}
 			defer file.Close()
+			capture := compatreport.NewCapture(file)
 			selected := format
-			var input io.Reader = file
+			var input io.Reader = capture
 			if selected == "auto" {
-				selected, input, err = traceformat.Detect(file)
+				selected, input, err = traceformat.Detect(capture)
 				if err != nil {
-					return err
+					return compatreport.Append(err, version, "", "unknown", false)
 				}
 			}
 			var r run.Run
@@ -53,7 +60,12 @@ func NewCommand(version string) *cobra.Command {
 				r, err = codex.Parse(input)
 			}
 			if err != nil {
-				return fmt.Errorf("parse trace: %w", err)
+				agentVersion := "unknown"
+				var failure *diagnostic.Failure
+				if errors.As(err, &failure) {
+					agentVersion = capture.AgentVersion(selected, failure.Line)
+				}
+				return compatreport.Append(fmt.Errorf("parse trace: %w", err), version, selected, agentVersion, format != "auto")
 			}
 			return report.Write(cmd.OutOrStdout(), r)
 		},
