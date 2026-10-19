@@ -342,16 +342,17 @@ Focused tests cover interleaved requests/results, source lines, missing feedback
 duplicate IDs, orphan results, and unsupported requests. Existing and absent
 target files are checked to establish read-only inspection.
 
-No production changes were needed for these scenarios. The existing event stream
+No production changes were needed for the legacy repetition scenarios. The existing event stream
 preserves every request and matching observation/result without imposing strict
 alternation or requiring feedback before subsequent requests. Completion remains
 independent of tool status and missing feedback. Single-task and supported-tool
 limits remain unchanged.
 
-**Open adapter requirement:** a broader second search located two real repeated
+The broader second search located two real repeated
 Codex sequences in the newer structured `event_msg/item_completed` representation.
 Their [sanitized extracts and provenance](repeated-evidence/README.md) retain
 combined operation/feedback records without inventing legacy tool calls. The
-current adapter rejects that representation. M4's end-to-end real Codex acceptance
-and distribution smoke coverage remain open; synthetic coverage alone does not
-satisfy them.
+adapter supports the narrow recorded forms documented there; both fixtures have
+expected reports, CLI acceptance tests, and distribution smoke coverage. Each
+combined record maps to a request/feedback pair sharing its source ID and line,
+with a report notice distinguishing record order from operation start order.

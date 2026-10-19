@@ -76,6 +76,7 @@ Inspect repeated acquisition and modification within one task:
 
 ```sh
 ./unfriction inspect fixtures/claude-repeated.jsonl
+./unfriction inspect fixtures/repeated-evidence/codex-0.163.0.jsonl
 ```
 
 There is no fixed repetition count: both adapters preserve repeated requests and
@@ -84,10 +85,12 @@ Reads and actions need not alternate, and feedback may arrive after later reques
 Local IDs (`a1`, `a2`, ... and `act1`, `act2`, ...) identify each request independently
 of its target. An error followed by another attempt remains recorded evidence;
 the report does not infer why the agent continued or whether the task succeeded.
-The Claude example comes from a reduced real recording. Codex repetition is
-currently covered by synthetic regression sequences; two real repeated Codex
-extracts have been located but use a structured record format the adapter does
-not yet support. See
+Both examples come from reduced real recordings. Structured Codex records combine
+an operation and its feedback; each normalized pair shares a source ID and line.
+The report discloses that event order follows the recorded items, without
+reconstructing operation start order. Supported structured records use one
+representation per turn; mixing them with legacy task/tool/final records fails
+explicitly. See
 [repeated-sequence provenance](fixtures/README.md#m4-repeated-sequence-evidence).
 
 All events retain source order and correlate observations/results by request ID.
@@ -120,7 +123,7 @@ and outcome verification remain out of scope.
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
 vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3,
-repeated Claude sequence, and observed tool-variant fixtures.
+repeated Claude and structured Codex sequences, and observed tool-variant fixtures.
 
 When detection or adapter validation fails, the CLI appends a link to an editable
 [public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).

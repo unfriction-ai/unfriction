@@ -1,10 +1,11 @@
-# Real repeated Codex sequences: pending adapter support
+# Real repeated Codex sequences: structured completed items
 
 These are sanitized reductions of two existing local Codex recordings, prepared
 on 2026-10-19. They establish that real single-task read → modification → read →
-modification sequences exist. **The current CLI does not support their
-`event_msg/item_completed` representation.** They are evidence for the remaining
-adapter work, not passing smoke fixtures or complete histories.
+modification sequences exist. The CLI supports the narrow
+`event_msg/item_completed` representation described below. Each extract has a
+reviewed `.txt` expected report and is exercised through CLI acceptance and
+Homebrew smoke tests. Neither extract is a complete history.
 
 | Extract | Recorded version | Selected task (UTC) | Original retained lines |
 | --- | --- | --- | --- |
@@ -31,7 +32,9 @@ contains 30 and 7 respectively. Only two of each kind are retained per extract.
 Other operations, outer JavaScript tool wrappers and their results, duplicate
 response messages, commentary, reasoning, extensions, token information,
 environment/session metadata, navigation fields, and timing metadata were
-omitted. The first task's skill content block is also omitted. The extracts are
+omitted. The first task's skill content block and text-element annotations are
+also omitted when replacing the task text; the replacement has an empty
+`text_elements` array. The extracts are
 not complete inventories and do not explain why the agent chose the later work.
 
 Sanitization replaces task/final text, thread/turn/item/process IDs, paths, working
@@ -54,17 +57,60 @@ supported direct representation. Searching the structured `item_completed`
 records then found these two tasks using the already recognized read command
 and single-file modifications.
 
-## Remaining implementation decision
+## Supported mapping and input contract
 
 These are four combined operation/feedback records, **not eight separately
-recorded request/result events**. Do not rewrite them into invented legacy tool
-calls just to make the current parser accept them. A narrow adapter extension
-would need to recognize the task/final structured messages and the two operation
-kinds, preserve their IDs and source lines, and explicitly define how a combined
-record maps to acquisition/observation or action/result events. Completion must
-still require the matching `task_complete`, and unsupported commands, change
-kinds, ambiguous feedback, and mixed duplicate representations must fail
-explicitly. This does not require interpreting JavaScript wrappers.
+recorded request/result events**. The adapter maps each `CommandExecution` to an
+acquisition/observation pair and each `FileChange` to an action/result pair. Both
+events retain the same original item ID and source line. Local IDs remain
+`a1`, `a2`, ... and `act1`, `act2`, ... without a fixed repetition count or path
+deduplication. Each pair gets a coverage notice in the report explaining that
+record order does not establish operation start order. No timestamps are invented
+and JavaScript wrappers are not interpreted.
 
-M4's real Codex evidence has now been located. Its end-to-end Codex acceptance
-and distribution smoke coverage remain open until the representation is supported.
+- Every structured item requires a nonblank ID, the active turn ID, and a
+  nonblank thread ID consistent across the structured records. Item IDs must be
+  unique across messages and operations. A second task, a second final response,
+  an operation before the task or after the final response, and items after
+  completion fail explicitly.
+- `UserMessage` contains exactly one nonempty `text` block; `text_elements` must
+  be absent or an empty array. `AgentMessage` contains exactly one nonempty `Text`
+  block and `phase=final_answer`. Other content, commentary, and phases remain
+  unsupported in this reduced structured representation.
+- `CommandExecution.command` must be exactly `["/bin/zsh", "-lc", <read>]`, with
+  `source=unified_exec_startup`. The read uses the existing literal `cat <path>`
+  or `sed -n '1,220p' <path>` grammar. Command syntax is validated independently
+  of `parsed_cmd`; metadata cannot turn an unsupported command into an acquisition.
+  Only `status=completed` with integer `exit_code=0` is supported. Text
+  `aggregated_output` is required and may be empty. `stdout`, `stderr`, and
+  `formatted_output` must be absent or null, avoiding conflicting output sources.
+- `FileChange` requires exactly one literal target with `type=update`, explicit
+  `move_path=null`, and a nonempty supported unified diff. Bare numeric hunk
+  headers, context/removal/addition lines, matching hunk lengths, and an actual
+  change in each hunk are checked. Named headers, file headers, no-newline markers,
+  other change kinds, renames, and multiple targets remain unsupported. Hunk
+  validation never reads the target file or verifies whether the patch applies.
+  Only `status=completed` with present string stdout and empty string stderr is
+  supported. Empty stdout remains an empty recorded result. Alternate aggregated
+  output, exit-code, or formatted-output fields must be absent or null.
+- Missing/null required feedback is malformed input, not a pending request.
+  Other status/exit combinations, including failed operations, currently fail
+  explicitly pending evidence for those structured variants. Legacy tool-error
+  and missing-feedback behavior is unchanged.
+- Process IDs, working directories, parsed-command metadata, durations, and other
+  uninterpreted metadata do not drive behavior or outcome claims. Unknown item
+  kinds are rejected, rather than silently discarded.
+- Legacy `user_message`/`agent_message` and tool request/result records cannot be
+  mixed with structured items in either order, even with different IDs. This
+  avoids ambiguous double representation; it does not deduplicate by path.
+  Existing recognized metadata and duplicate `response_item` message/reasoning
+  records retain their existing handling.
+- A matching `task_complete` must still agree with the active turn and final text.
+  Final text or completed tool items alone leave execution `INCOMPLETE`. Normal
+  termination does not independently verify engineering success. Invalid input
+  produces a source-line diagnostic and no partial report.
+
+Synthetic unit variants cover three operation pairs, repeated paths, duplicates,
+invalid lifecycle/mixed representations, malformed diffs, missing/ambiguous
+feedback, and unsupported operations. They are regression tests, not additional
+claims of recorded vendor variants.
