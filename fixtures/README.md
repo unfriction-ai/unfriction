@@ -138,7 +138,8 @@ The M1 lifecycle rules above still apply. In addition, between task and final:
   including an empty body. Execution metadata is not rendered as observation
   text; the process exit code is never used to infer run completion or success.
 - Session metadata, turn context, response messages/reasoning, token counts, and
-  agent reasoning are ignored. Other event forms are rejected explicitly.
+  agent reasoning are ignored. The recognized context records described below are accounted for separately.
+  Other event forms are rejected explicitly.
   Newer Codex custom-tool/orchestration formats are not supported by this variant.
 
 ### Claude Code (`--format claude-code`)
@@ -157,7 +158,8 @@ The M1 lifecycle rules above still apply. In addition, between task and final:
   unterminated text is not promoted to a final response. `tool_use` stop reasons
   require a tool-use block; other nonempty stop reasons are unsupported.
 - Assistant thinking blocks and top-level file-history snapshots, progress, and
-  queue-operation records are ignored. Other records/blocks are rejected; reduce
+  queue-operation records are ignored. The recognized session/context records
+  described below are handled separately. Other records/blocks are rejected; reduce
   full session exports by removing unsupported metadata before importing.
 
 ### Diagnostics
@@ -169,3 +171,13 @@ returns `INCOMPLETE`. A request without a result remains visible with
 `Diagnostic: Observation missing for a1`; no observation is invented. If explicit
 termination evidence is present, execution remains `COMPLETED` alongside that
 diagnostic. Missing observations do not silently change execution history.
+
+
+## Recognized session and context records
+
+See [context-record regression fixtures and interpretation rules](context-records/README.md)
+for world state, opaque compaction, session-start hooks, and constrained navigation
+bookkeeping. Context-bearing records produce a separate `Context coverage` section
+with source lines and explicit interpretation limits. They are never reported as
+agent-selected acquisitions or ordinary read observations. This compatibility
+increment does not make full multi-turn histories supported.

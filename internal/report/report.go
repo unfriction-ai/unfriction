@@ -32,6 +32,13 @@ func Write(w io.Writer, r run.Run) error {
 		}
 		b.WriteString("\n")
 	}
+	if len(r.Coverage) > 0 {
+		b.WriteString("Context coverage:\n")
+		for _, notice := range r.Coverage {
+			fmt.Fprintf(&b, "- Source line %d: %s\n", notice.SourceLine, notice.Summary)
+		}
+		b.WriteString("\n")
+	}
 	fmt.Fprintf(&b, "Final response:\n%s\n\nExecution state: %s\nCompletion describes execution termination, not verified task success.\n", r.FinalResponse, r.ExecutionState)
 	_, err := io.WriteString(w, b.String())
 	return err

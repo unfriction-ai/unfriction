@@ -47,6 +47,14 @@ func Parse(input io.Reader) (run.Run, error) {
 			return run.Run{}, fmt.Errorf("line %d: missing event type", line)
 		}
 		p := e.Payload
+		if e.Type == "world_state" || (e.Type == "response_item" && p.Type == "compaction") {
+			notice, err := contextRecord(scanner.Bytes(), line)
+			if err != nil {
+				return run.Run{}, fmt.Errorf("line %d: %w", line, err)
+			}
+			r.Coverage = append(r.Coverage, notice)
+			continue
+		}
 		if e.Type == "response_item" && (strings.HasSuffix(p.Type, "_call") || strings.HasSuffix(p.Type, "_call_output")) {
 			var err error
 			switch p.Type {
