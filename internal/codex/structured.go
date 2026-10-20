@@ -33,6 +33,7 @@ type completedItem struct {
 	ExitCode        *int            `json:"exit_code"`
 	Stdout          *string         `json:"stdout"`
 	Stderr          *string         `json:"stderr"`
+	Duration        json.RawMessage `json:"duration"`
 	FormattedOutput json.RawMessage `json:"formatted_output"`
 	Changes         map[string]struct {
 		Type     string          `json:"type"`
@@ -119,6 +120,7 @@ func (s *completedItems) consume(r *run.Run, raw json.RawMessage, thread, turn, 
 		if err := r.Observe(item.ID, *item.Output, line); err != nil {
 			return err
 		}
+		r.Events[len(r.Events)-1].Duration = structuredDuration(item.Duration)
 		id := r.Events[len(r.Events)-1].AcquisitionID
 		r.Coverage = append(r.Coverage, run.Coverage{SourceLine: line, Summary: fmt.Sprintf("Combined record supplies acquisition %s and its observation; record order does not establish operation start order.", id)})
 	case "FileChange":

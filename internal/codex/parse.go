@@ -143,6 +143,9 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 					return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported observation envelope", line))
 				}
 				err = r.Observe(p.CallID, body, line)
+				if err == nil {
+					r.Events[len(r.Events)-1].Duration = envelopeDuration(*p.Output)
+				}
 			default:
 				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: unsupported tool event %q", line, p.Type))
 			}
