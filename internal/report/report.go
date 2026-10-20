@@ -71,6 +71,8 @@ func Write(w io.Writer, r run.Run) error {
 		fmt.Fprintf(&b, "\nAcquisition measurements:\n- Attempts: %d\n- Matched observations: %d\n- Missing observations: %d\n", frequency.Attempts, frequency.MatchedObservations, frequency.MissingObservations)
 		volume := r.AcquisitionVolume()
 		fmt.Fprintf(&b, "- Observed text: %d bytes (UTF-8)\n- Observed images: %d bytes (decoded)\n", volume.TextBytes, volume.ImageBytes)
+		targets := r.AcquisitionTargets()
+		fmt.Fprintf(&b, "- Distinct targets: %d\n- Repeated requests: %d\n", targets.DistinctTargets, targets.RepeatedRequests)
 		b.WriteString("Volume describes normalized observed result payload, not original file size, model tokens, or retained context.\n")
 	}
 	_, err := io.WriteString(w, b.String())

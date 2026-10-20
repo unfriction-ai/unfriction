@@ -18,4 +18,6 @@ Acquisition measurements:
 - Missing observations: 0
 - Observed text: 0 bytes (UTF-8)
 - Observed images: 73 bytes (decoded)
+- Distinct targets: 1
+- Repeated requests: 0
 Volume describes normalized observed result payload, not original file size, model tokens, or retained context.
