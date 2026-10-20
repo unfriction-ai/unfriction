@@ -2,6 +2,7 @@ package acceptance_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,10 +17,7 @@ func TestImportCodexAcquisition(t *testing.T) {
 func checkAcquisition(t *testing.T, format, fixture string) {
 	t.Helper()
 	binary := buildBinary(t)
-	want, err := os.ReadFile(filepath.Join("..", "fixtures", "acquisition.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	want := acquisitionReport(t, format, 0)
 	for range 2 {
 		output, err := exec.Command(binary, "inspect", "--format", format, filepath.Join("..", "fixtures", fixture)).CombinedOutput()
 		if err != nil || string(output) != string(want) {
@@ -63,4 +61,18 @@ func TestInvalidAcquisitionProducesDiagnosticWithoutReport(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Prefix metadata changes provenance line numbers without changing acquisitions.
+func acquisitionReport(t *testing.T, format string, prefixLines int) []byte {
+	t.Helper()
+	fixture, line := "acquisition.txt", 4
+	if format == "claude-code" {
+		fixture, line = "claude-acquisition.txt", 3
+	}
+	data, err := os.ReadFile(filepath.Join("..", "fixtures", fixture))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return []byte(strings.ReplaceAll(string(data), fmt.Sprintf("(source line %d)", line), fmt.Sprintf("(source line %d)", line+prefixLines)))
 }

@@ -11,10 +11,6 @@ import (
 
 func TestRecognizedContextRecords(t *testing.T) {
 	binary := buildBinary(t)
-	baseline, err := os.ReadFile("../fixtures/acquisition.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, tc := range []struct{ fixture, notice string }{
 		{"world-state", "Environment state recorded; supplied context is not reconstructed."},
 		{"compaction", "Opaque context compaction recorded; retained context is unknown."},
@@ -23,7 +19,11 @@ func TestRecognizedContextRecords(t *testing.T) {
 	} {
 		t.Run(tc.fixture, func(t *testing.T) {
 			output, err := exec.Command(binary, "inspect", filepath.Join("..", "fixtures", "context-records", tc.fixture+".jsonl")).CombinedOutput()
-			want := string(baseline)
+			format := "codex"
+			if tc.fixture == "last-prompt" || tc.fixture == "session-hook" {
+				format = "claude-code"
+			}
+			want := string(acquisitionReport(t, format, 1))
 			if tc.notice != "" {
 				want = strings.Replace(want, "Final response:", "Context coverage:\n- Source line 1: "+tc.notice+"\n\nFinal response:", 1)
 			}

@@ -25,3 +25,6 @@ Acquisition measurements:
 - Distinct targets: 1
 - Repeated requests: 0
 Volume describes normalized observed result payload, not original file size, model tokens, or retained context.
+Recorded tool-execution duration:
+- a1: unavailable (source line 3)
+Durations describe vendor execution/output-wait intervals, not full process lifetime, model inference, or task elapsed time; no total is inferred.
