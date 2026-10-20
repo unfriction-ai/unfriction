@@ -84,6 +84,24 @@ func Write(w io.Writer, r run.Run) error {
 		}
 		b.WriteString("Durations describe vendor execution/output-wait intervals, not full process lifetime, model inference, or task elapsed time; no total is inferred.\n")
 	}
+	if len(r.ModelUsage) > 0 {
+		b.WriteString("\nRecorded model usage:\n")
+		for i, usage := range r.ModelUsage {
+			fmt.Fprintf(&b, "Model usage m%d: %s (source line %d)\n", i+1, usage.Scope, usage.SourceLine)
+			if usage.Unavailable != "" {
+				fmt.Fprintf(&b, "- unavailable: %s\n", usage.Unavailable)
+				continue
+			}
+			for _, counter := range usage.Counters {
+				if counter.Tokens == nil {
+					fmt.Fprintf(&b, "- %s: unavailable\n", counter.Name)
+				} else {
+					fmt.Fprintf(&b, "- %s: %d tokens\n", counter.Name, *counter.Tokens)
+				}
+			}
+		}
+		b.WriteString("Vendor-reported model usage is not acquisition-only; session snapshots may include earlier tasks; no token allocation or cost is inferred.\n")
+	}
 	_, err := io.WriteString(w, b.String())
 	return err
 }
