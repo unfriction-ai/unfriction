@@ -11,12 +11,13 @@ import (
 
 func TestAutomaticFormatSelection(t *testing.T) {
 	binary := buildBinary(t)
-	want, err := os.ReadFile("../fixtures/acquisition.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, fixture := range []string{"codex-acquisition.jsonl", "claude-acquisition.jsonl"} {
 		t.Run(fixture, func(t *testing.T) {
+			format := "codex"
+			if strings.HasPrefix(fixture, "claude") {
+				format = "claude-code"
+			}
+			want := acquisitionReport(t, format, 0)
 			output, err := exec.Command(binary, "inspect", filepath.Join("..", "fixtures", fixture)).CombinedOutput()
 			if err != nil || !bytes.Equal(output, want) {
 				t.Fatalf("%v\n%s", err, output)
@@ -73,10 +74,7 @@ func TestExplicitFormatBypassesExhaustedPrefix(t *testing.T) {
 				t.Fatalf("%v %s", err, output)
 			}
 			output, err = exec.Command(binary, "inspect", "--format", tc.format, path).CombinedOutput()
-			want, readErr := os.ReadFile("../fixtures/acquisition.txt")
-			if readErr != nil {
-				t.Fatal(readErr)
-			}
+			want := acquisitionReport(t, tc.format, 64)
 			if err != nil || !bytes.Equal(output, want) {
 				t.Fatalf("%v %s", err, output)
 			}

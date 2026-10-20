@@ -31,6 +31,7 @@ type Event struct {
 	IsError       bool
 	Operation     ActionOperation
 	Image         *ImageObservation
+	Duration      *RecordedDuration
 	Target        string
 	Text          string
 	SourceID      string

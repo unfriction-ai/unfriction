@@ -74,6 +74,15 @@ func Write(w io.Writer, r run.Run) error {
 		targets := r.AcquisitionTargets()
 		fmt.Fprintf(&b, "- Distinct targets: %d\n- Repeated requests: %d\n", targets.DistinctTargets, targets.RepeatedRequests)
 		b.WriteString("Volume describes normalized observed result payload, not original file size, model tokens, or retained context.\n")
+		b.WriteString("Recorded tool-execution duration:\n")
+		for _, timing := range r.AcquisitionTimings() {
+			if timing.Duration == nil {
+				fmt.Fprintf(&b, "- %s: unavailable (source line %d)\n", timing.AcquisitionID, timing.SourceLine)
+			} else {
+				fmt.Fprintf(&b, "- %s: %s seconds (source line %d)\n", timing.AcquisitionID, timing.Duration.Seconds, timing.SourceLine)
+			}
+		}
+		b.WriteString("Durations describe vendor execution/output-wait intervals, not full process lifetime, model inference, or task elapsed time; no total is inferred.\n")
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
