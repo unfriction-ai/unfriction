@@ -20,3 +20,8 @@ Revised the project headings.
 
 Execution state: COMPLETED
 Completion describes execution termination, not verified task success.
+
+Acquisition measurements:
+- Attempts: 2
+- Matched observations: 2
+- Missing observations: 0
