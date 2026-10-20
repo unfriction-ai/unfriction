@@ -66,6 +66,10 @@ func Write(w io.Writer, r run.Run) error {
 		b.WriteString("\n")
 	}
 	fmt.Fprintf(&b, "Final response:\n%s\n\nExecution state: %s\nCompletion describes execution termination, not verified task success.\n", r.FinalResponse, r.ExecutionState)
+	frequency := r.AcquisitionFrequency()
+	if frequency.Attempts > 0 {
+		fmt.Fprintf(&b, "\nAcquisition measurements:\n- Attempts: %d\n- Matched observations: %d\n- Missing observations: %d\n", frequency.Attempts, frequency.MatchedObservations, frequency.MissingObservations)
+	}
 	_, err := io.WriteString(w, b.String())
 	return err
 }

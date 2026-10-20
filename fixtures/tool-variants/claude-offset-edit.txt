@@ -15,3 +15,8 @@ The edit tool was unavailable.
 
 Execution state: COMPLETED
 Completion describes execution termination, not verified task success.
+
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
