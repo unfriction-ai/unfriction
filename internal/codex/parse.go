@@ -50,6 +50,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 	var hasTask, hasFinal bool
 	var structured, legacy bool
 	var items completedItems
+	var usage usageCollector
 	for line := 1; scanner.Scan(); line++ {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
@@ -64,6 +65,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 			return run.Run{}, fmt.Errorf("line %d: missing event type", line)
 		}
 		p := e.Payload
+		usage.consume(scanner.Bytes(), turnID != "" && r.ExecutionState != run.Completed, line)
 		if e.Type == "event_msg" && p.Type == "item_completed" {
 			if legacy {
 				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: mixed legacy and structured representations are unsupported; supply one representation", line))
@@ -210,6 +212,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 	if !hasTask {
 		return run.Run{}, fmt.Errorf("trace does not contain a task in a started turn")
 	}
+	r.ModelUsage = usage.entries()
 	return r, nil
 }
 
