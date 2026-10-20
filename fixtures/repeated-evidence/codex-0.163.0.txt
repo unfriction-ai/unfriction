@@ -33,3 +33,6 @@ Acquisition measurements:
 - Attempts: 2
 - Matched observations: 2
 - Missing observations: 0
+- Observed text: 24 bytes (UTF-8)
+- Observed images: 0 bytes (decoded)
+Volume describes normalized observed result payload, not original file size, model tokens, or retained context.
