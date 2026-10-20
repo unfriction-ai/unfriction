@@ -17,6 +17,11 @@ M PROJECT-1.md
 Success. Updated the following files:
 M PROJECT-2.md
 
+Acquisition measurements:
+- Attempts: 2
+- Matched observations: 2
+- Missing observations: 0
+
 Context coverage:
 - Source line 3: Combined record supplies acquisition a1 and its observation; record order does not establish operation start order.
 - Source line 4: Combined record supplies action act1 and its result; record order does not establish operation start order.

@@ -58,6 +58,13 @@ func Write(w io.Writer, r run.Run) error {
 		}
 		b.WriteString("\n")
 	}
+	if lines := acquisitionMeasurements(r); len(lines) > 0 {
+		b.WriteString("Acquisition measurements:\n")
+		for _, line := range lines {
+			fmt.Fprintf(&b, "- %s\n", line)
+		}
+		b.WriteString("\n")
+	}
 	if len(r.Coverage) > 0 {
 		b.WriteString("Context coverage:\n")
 		for _, notice := range r.Coverage {
@@ -68,4 +75,18 @@ func Write(w io.Writer, r run.Run) error {
 	fmt.Fprintf(&b, "Final response:\n%s\n\nExecution state: %s\nCompletion describes execution termination, not verified task success.\n", r.FinalResponse, r.ExecutionState)
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// acquisitionMeasurements returns one line per measurement, or none when the
+// run records no acquisition.
+func acquisitionMeasurements(r run.Run) []string {
+	c := r.AcquisitionCounts()
+	if c.Attempts == 0 {
+		return nil
+	}
+	return []string{
+		fmt.Sprintf("Attempts: %d", c.Attempts),
+		fmt.Sprintf("Matched observations: %d", c.Matched),
+		fmt.Sprintf("Missing observations: %d", c.Missing),
+	}
 }

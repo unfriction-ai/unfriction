@@ -15,6 +15,11 @@ The file README.md has been updated successfully.
 8. Result for act2:
 The file GUIDE.md has been updated successfully.
 
+Acquisition measurements:
+- Attempts: 2
+- Matched observations: 2
+- Missing observations: 0
+
 Final response:
 Revised the project headings.
 

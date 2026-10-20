@@ -10,6 +10,11 @@ Run events:
 Success. Updated the following files:
 M README.md
 
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
+
 Final response:
 Updated the project heading.
 

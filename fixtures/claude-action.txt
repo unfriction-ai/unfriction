@@ -9,6 +9,11 @@ Run events:
 4. Result for act1:
 The file README.md has been updated successfully.
 
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
+
 Final response:
 Updated the project heading.
 

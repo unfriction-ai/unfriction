@@ -6,6 +6,11 @@ Context events:
 2. Observation for a1:
 Image: image/jpeg, 599 bytes (content not interpreted)
 
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
+
 Final response:
 Read the image.
 

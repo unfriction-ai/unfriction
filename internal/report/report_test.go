@@ -64,3 +64,30 @@ func TestActionReportDoesNotInventResultsOrTaskOutcome(t *testing.T) {
 		}
 	}
 }
+
+func TestAcquisitionMeasurementsSection(t *testing.T) {
+	r := run.Run{Task: "update", ExecutionState: run.Incomplete, Coverage: []run.Coverage{{SourceLine: 1, Summary: "notice"}}}
+	if err := r.Act("edit", "README.md", 2); err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := Write(&b, r); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(b.String(), "Acquisition measurements") {
+		t.Fatal("measurements without acquisitions:\n" + b.String())
+	}
+	for _, step := range []error{r.Acquire("read-1", "README.md", 3), r.Acquire("read-2", "README.md", 4), r.Observe("read-2", "", 5)} {
+		if step != nil {
+			t.Fatal(step)
+		}
+	}
+	b.Reset()
+	if err := Write(&b, r); err != nil {
+		t.Fatal(err)
+	}
+	want := "Diagnostic: Observation missing for a1\n\nAcquisition measurements:\n- Attempts: 2\n- Matched observations: 1\n- Missing observations: 1\n\nContext coverage:\n"
+	if !strings.Contains(b.String(), want) {
+		t.Fatal(b.String())
+	}
+}

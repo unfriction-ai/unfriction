@@ -21,6 +21,11 @@ Context events:
 2. Observation for a1:
 # Example
 
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
+
 Final response:
 The project is Example.
 
@@ -101,6 +106,21 @@ unfinished traces report `INCOMPLETE` and exit zero. Malformed, contradictory,
 unmatched, or unsupported events return a nonzero exit code with a diagnostic on
 stderr and no report. Adapter validation errors include the source line where
 applicable.
+
+Reports with at least one acquisition add an `Acquisition measurements:` section
+after the events; runs without acquisitions, such as the no-tool path, omit it.
+The counts are derived from the reconstructed events, not from report text:
+
+- **Attempts**: acquisition requests, including requests with no recorded result.
+- **Matched observations**: observations associated with a request, including
+  empty, image, and tool-reported error observations.
+- **Missing observations**: requests without an associated observation; each one
+  also has a `Diagnostic: Observation missing` line.
+
+For valid traces, `attempts = matched + missing`. Actions and their results do not
+affect these counts, and repeated reads of one target each count as an attempt.
+The counts measure recorded acquisition effort; they do not judge whether that
+effort was necessary or successful.
 
 Run checks:
 
