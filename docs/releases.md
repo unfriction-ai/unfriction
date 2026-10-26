@@ -1,6 +1,7 @@
 # Release and distribution
 
-The application source stays in the private `unfriction-ai/unfriction` repository.
+The application source lives in `unfriction-ai/unfriction`; publication supports
+both public and private source repositories.
 Public binaries and checksums live in `unfriction-ai/unfriction-releases`.
 The public formula lives in `unfriction-ai/homebrew-tap`.
 Both public repositories have independent history; never mirror the source repo.
@@ -68,29 +69,32 @@ PR jobs have no publishing credentials.
 This setup is not complete until the public repositories and credential exist:
 
 1. Create public `unfriction-ai/unfriction-releases` with a `main` branch containing
-   only a public README explaining installation. Never push the private source
+   only a public README explaining installation. Never push the source
    branch or source tags to it.
 2. Create public `unfriction-ai/homebrew-tap` with a `main` branch, public README,
    and `Formula/.gitkeep` so the first formula update can list that directory.
-3. Store a fine-grained token as `PUBLIC_RELEASE_TOKEN` in the private source
+3. Store a fine-grained token as `PUBLIC_RELEASE_TOKEN` in the source
    repository. Grant Contents read/write only to these two public repositories.
    Keep the secret out of pull requests and source files. The workflow's own
-   `GITHUB_TOKEN` creates tags in the private source repository.
+   `GITHUB_TOKEN` creates tags in the source repository.
 4. Merge using a Conventional Commit (for example,
    `feat: automate releases and Homebrew distribution`). Do not create an initial
    release tag manually; the workflow calculates `0.1.0`.
 
 The public release starts as a draft and receives an explicit allowlist of the
 two archives and checksums. The formula is then updated automatically, and the
-private source commit receives its version tag. Fresh macOS jobs finally install
+source commit receives its version tag. Fresh macOS jobs finally install
 the published formula without authentication and repeat the smoke test.
 Issue #3 remains incomplete until this actual public installation succeeds.
 
 ## Retry and troubleshooting
 
-- Missing `PUBLIC_RELEASE_TOKEN`, wrong visibility, or missing repositories fails
-  publication. Complete the setup and rerun the failed workflow; don't manually
-  increment versions or tags.
+- Missing `PUBLIC_RELEASE_TOKEN`, private distribution repositories, or missing
+  repositories prevents publication. Complete the setup and rerun the failed
+  workflow; don't manually increment versions or tags.
+- Changing source repository visibility does not require new credentials or a
+  version bump. After a publisher-script fix, merge it and use the new main run;
+  rerunning an older workflow uses the script from its original commit.
 - A rerun at an already tagged commit retains the same version. Published assets
   are never overwritten: checksums must match. Draft asset uploads can be retried.
 - A partial release belonging to a different source commit fails explicitly.
