@@ -1,0 +1,30 @@
+[
+  {
+    "source_line": 247,
+    "version": "2.1.302",
+    "message_id": "same-model-message",
+    "block_types": [
+      "thinking"
+    ],
+    "usage": {
+      "input_tokens": 2,
+      "output_tokens": 230,
+      "cache_creation_input_tokens": 672,
+      "cache_read_input_tokens": 62548
+    }
+  },
+  {
+    "source_line": 248,
+    "version": "2.1.302",
+    "message_id": "same-model-message",
+    "block_types": [
+      "text"
+    ],
+    "usage": {
+      "input_tokens": 2,
+      "output_tokens": 230,
+      "cache_creation_input_tokens": 672,
+      "cache_read_input_tokens": 62548
+    }
+  }
+]

@@ -10,7 +10,7 @@ go build -buildvcs=false -o unfriction ./cmd/unfriction
 ./unfriction inspect fixtures/claude-acquisition.jsonl
 ```
 
-Both examples produce:
+Both examples begin with:
 
 ```text
 Task:
@@ -102,6 +102,35 @@ unmatched, or unsupported events return a nonzero exit code with a diagnostic on
 stderr and no report. Adapter validation errors include the source line where
 applicable.
 
+## Observable measurements
+
+Acquisition-bearing reports append counts, normalized returned payload bytes,
+literal target repetition, and attributable recorded operation durations.
+
+| Measurement | Unit and boundary |
+| --- | --- |
+| [Frequency](docs/acquisition-measurements.md) | Requests, matched observations, and missing observations; attempts = matched + missing. |
+| [Returned volume](docs/acquisition-volume.md) | UTF-8 text bytes and validated decoded image bytes separately; missing is not observed empty. |
+| [Targets](docs/acquisition-targets.md) | Distinct literal target strings and additional requests; no path normalization or redundancy judgment. |
+| [Timing evidence](docs/m5-timing-evidence.md) | Recorded seconds per acquisition where verified, otherwise unavailable; no total across operations. |
+| [Model usage evidence](docs/m5-usage-evidence.md) | Verified vendor token counters at session-snapshot or model-message scope; never allocated to acquisitions. |
+
+Model usage appears separately when telemetry is present. No section means no
+supported usage was measured, not zero tokens. Unverified versions, malformed
+counters, and conflicting snapshots remain unavailable. Codex cumulative session
+snapshots may include earlier tasks; Claude message snapshots are deduplicated by
+message identity. Counter categories remain vendor-specific and are not blindly
+summed. These measurements do not establish usefulness, retained context, monetary
+cost, or engineering success. Supplied context and opaque compaction are excluded.
+
+Try the sanitized evidence:
+
+```sh
+./unfriction inspect fixtures/timing-evidence/codex-0.163.0.jsonl
+./unfriction inspect fixtures/usage-evidence/codex-usage.jsonl
+./unfriction inspect fixtures/usage-evidence/claude-usage.jsonl
+```
+
 Run checks:
 
 ```sh
@@ -117,13 +146,13 @@ The Cobra CLI in `internal/cli` uses `internal/traceformat` for automatic select
 or selects `internal/codex` or `internal/claude` explicitly.
 Both adapters return the vendor-independent `internal/run` model, rendered by
 `internal/report`. The event stream distinguishes context acquisition from supported file-modification
-attempts. General action classification, automatic loop segmentation, metrics, comparisons,
+attempts. General action classification, automatic loop segmentation, comparisons,
 and outcome verification remain out of scope.
 
 See [release policy and Homebrew installation](docs/releases.md). Development
 builds report `unfriction dev`; release builds embed their version. CI runs tests,
 vet, release candidate builds, and Homebrew smoke checks for the M1, M2, M3,
-repeated Claude and structured Codex sequences, and observed tool-variant fixtures.
+repeated Claude and structured Codex sequences, observed tool-variant fixtures, and timing/usage evidence.
 
 When detection or adapter validation fails, the CLI appends a link to an editable
 [public compatibility issue draft](https://github.com/unfriction-ai/unfriction-releases/issues/new).

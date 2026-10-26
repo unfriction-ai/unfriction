@@ -1,0 +1,39 @@
+Task:
+Read README.md and report the project name.
+
+Context events:
+1. Acquisition a1: README.md
+2. Observation for a1:
+# Example
+
+Final response:
+The project is Example.
+
+Execution state: COMPLETED
+Completion describes execution termination, not verified task success.
+
+Acquisition measurements:
+- Attempts: 1
+- Matched observations: 1
+- Missing observations: 0
+- Observed text: 10 bytes (UTF-8)
+- Observed images: 0 bytes (decoded)
+- Distinct targets: 1
+- Repeated requests: 0
+Volume describes normalized observed result payload, not original file size, model tokens, or retained context.
+Recorded tool-execution duration:
+- a1: unavailable (source line 3)
+Durations describe vendor execution/output-wait intervals, not full process lifetime, model inference, or task elapsed time; no total is inferred.
+
+Recorded model usage:
+Model usage m1: model-message snapshot (source line 2)
+- input_tokens: 2 tokens
+- output_tokens: 81 tokens
+- cache_creation_input_tokens: 61605 tokens
+- cache_read_input_tokens: 0 tokens
+Model usage m2: model-message snapshot (source line 4)
+- input_tokens: 2 tokens
+- output_tokens: 225 tokens
+- cache_creation_input_tokens: 672 tokens
+- cache_read_input_tokens: 61605 tokens
+Vendor-reported model usage is not acquisition-only; session snapshots may include earlier tasks; no token allocation or cost is inferred.

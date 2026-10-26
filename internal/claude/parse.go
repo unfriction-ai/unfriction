@@ -52,6 +52,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 	session := ""
 	var pointers []navigationPointer
 	var nodes []navigationNode
+	var usage usageCollector
 	for line := 1; scanner.Scan(); line++ {
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
@@ -122,6 +123,9 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		}
 		if r.Task == "" {
 			return fail("message before task")
+		}
+		if e.Type == "assistant" {
+			usage.consume(scanner.Bytes(), line)
 		}
 		var blocks []block
 		if err := json.Unmarshal(e.Message.Content, &blocks); err != nil || len(blocks) == 0 {
@@ -215,5 +219,6 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		currentRecord = diagnostic.Record{}
 		return run.Run{}, err
 	}
+	r.ModelUsage = usage.entries
 	return r, nil
 }

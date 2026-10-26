@@ -14,6 +14,7 @@ const (
 )
 
 type Run struct {
+	ModelUsage     []ModelUsage
 	Events         []Event
 	Coverage       []Coverage
 	Task           string
