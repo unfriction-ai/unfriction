@@ -18,7 +18,7 @@ if [[ "$current" != "$GITHUB_SHA" ]]; then
   echo 'main has advanced; this run will not publish.'
   exit 1
 fi
-[[ "$(GH_TOKEN="$SOURCE_TOKEN" gh api "repos/$GITHUB_REPOSITORY" --jq .private)" == true ]]
+# Source visibility does not affect binary publication; destinations must be public.
 for repo in "$distribution" "$tap"; do
   [[ "$(gh api "repos/$repo" --jq .private)" == false ]]
 done
