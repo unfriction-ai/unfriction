@@ -140,7 +140,8 @@ go vet ./...
 
 Acceptance tests build and invoke the real binary against sanitized recordings.
 Focused unit tests cover parsing, association, ordering, rendering, and CLI format
-selection. See [testing guidance](AGENTS.md).
+selection. See [testing guidance](AGENTS.md) and
+[contribution and naming conventions](CONTRIBUTING.md).
 
 The Cobra CLI in `internal/cli` uses `internal/traceformat` for automatic selection,
 or selects `internal/codex` or `internal/claude` explicitly.

@@ -1,3 +1,8 @@
+## Contribution conventions
+
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for milestone, issue, PR, and commit
+naming conventions.
+
 ## Testing approach
 
 Use outside-in TDD for behavior changes:
