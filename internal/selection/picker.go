@@ -15,13 +15,14 @@ import (
 
 var (
 	ErrCancelled  = errors.New("selection cancelled")
-	ErrNoTerminal = errors.New("selection requires a controlling terminal; run interactively or use inspect --turn <selector> -- <path>")
+	ErrNoTerminal = errors.New("selection requires a controlling terminal; run interactively or supply a trace path: inspect [--turn <selector>] -- <path>")
 	ErrEmpty      = errors.New("no supported recordings found for this repository; check CODEX_HOME / CLAUDE_CONFIG_DIR or use inspect with a known path")
 )
 
 type Options struct {
-	CWD     string
-	Sources recordings.Config
+	AcceptLabel string
+	CWD         string
+	Sources     recordings.Config
 }
 type discoveryMsg struct {
 	update recordings.Update
@@ -32,6 +33,7 @@ type verifiedMsg struct {
 	err error
 }
 type picker struct {
+	acceptLabel                 string
 	ctx                         context.Context
 	repo                        recordings.Repository
 	updates                     <-chan recordings.Update
@@ -222,7 +224,7 @@ func (m picker) View() string {
 		height := max(1, m.height-4)
 		first := min(m.previewOffset, max(0, len(lines)-height))
 		last := min(len(lines), first+height)
-		return "Full turn context\n" + strings.Join(lines[first:last], "\n") + "\n" + Safe(m.notice) + "\n↑↓ / PgUp/PgDn scroll · Tab back · Enter use · Esc cancel\n"
+		return "Full turn context\n" + strings.Join(lines[first:last], "\n") + "\n" + Safe(m.notice) + "\n↑↓ / PgUp/PgDn scroll · Tab back · Enter " + m.actionLabel() + " · Esc cancel\n"
 	}
 
 	width := m.width
@@ -299,7 +301,7 @@ func (m picker) View() string {
 		line(m.notice)
 	}
 	line("Type to search · ↑↓ select · ←→ neighbors (clears search)")
-	line("Tab full context · Enter use · Esc cancel · Ctrl+U clear")
+	line("Tab full context · Enter " + m.actionLabel() + " · Esc cancel · Ctrl+U clear")
 	return out.String()
 }
 
@@ -316,7 +318,7 @@ func Run(ctx context.Context, options Options) (Row, error) {
 	if err != nil {
 		return Row{}, err
 	}
-	model := picker{ctx: ctx, repo: repo, updates: recordings.Discover(ctx, repo, options.Sources), width: 100, height: 30}
+	model := picker{acceptLabel: options.AcceptLabel, ctx: ctx, repo: repo, updates: recordings.Discover(ctx, repo, options.Sources), width: 100, height: 30}
 	program := tea.NewProgram(model, tea.WithInput(terminal), tea.WithOutput(terminal), tea.WithContext(ctx), tea.WithAltScreen())
 	result, err := program.Run()
 	if err != nil {
@@ -348,4 +350,11 @@ func (m picker) detailLines() []string {
 		lines = append(lines, "")
 	}
 	return lines
+}
+
+func (m picker) actionLabel() string {
+	if m.acceptLabel == "" {
+		return "use"
+	}
+	return Safe(m.acceptLabel)
 }

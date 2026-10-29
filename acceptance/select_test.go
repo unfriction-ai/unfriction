@@ -86,6 +86,10 @@ type pickerProcess struct {
 
 func startPicker(t *testing.T, binary, repo, codexHome, claudeHome string, args ...string) *pickerProcess {
 	t.Helper()
+	return startTerminal(t, binary, repo, codexHome, claudeHome, append([]string{"select"}, args...)...)
+}
+func startTerminal(t *testing.T, binary, repo, codexHome, claudeHome string, args ...string) *pickerProcess {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	p := &pickerProcess{done: make(chan struct{}), readDone: make(chan struct{})}
 	var err error
@@ -101,7 +105,7 @@ func startPicker(t *testing.T, binary, repo, codexHome, claudeHome string, args 
 	p.before = filepath.Join(stateDir, "before")
 	p.after = filepath.Join(stateDir, "after")
 	script := `before=$1; after=$2; shift 2; stty -g > "$before"; "$@"; result=$?; stty -g > "$after"; exit "$result"`
-	commandArgs := []string{"-c", script, "picker-host", p.before, p.after, binary, "select"}
+	commandArgs := []string{"-c", script, "picker-host", p.before, p.after, binary}
 	p.cmd = exec.CommandContext(ctx, "sh", append(commandArgs, args...)...)
 	p.cmd.Dir = repo
 	p.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "CODEX_HOME="+codexHome, "CLAUDE_CONFIG_DIR="+claudeHome)

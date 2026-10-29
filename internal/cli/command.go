@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/unfriction-ai/unfriction/internal/inspection"
 	"github.com/unfriction-ai/unfriction/internal/report"
+	"github.com/unfriction-ai/unfriction/internal/selection"
 )
 
 func NewCommand(version string) *cobra.Command {
@@ -16,7 +20,7 @@ func NewCommand(version string) *cobra.Command {
 	format := "auto"
 	selector := ""
 	inspect := &cobra.Command{
-		Use: "inspect <trace.jsonl>", Short: "Inspect one recorded task run",
+		Use: "inspect [trace.jsonl]", Short: "Inspect one recorded task run",
 		Long: "Inspect one recorded task run. Automatically detect Codex or Claude Code from\n" +
 			"structural evidence in the first 64 KiB and 64 nonblank records. Unknown or\n" +
 			"conflicting evidence fails without guessing. Use --format codex or\n" +
@@ -27,7 +31,7 @@ func NewCommand(version string) *cobra.Command {
 			"Claude Edit replacement or recorded offset/new_text attempts. Read results\n" +
 			"may be text or one base64 PNG/JPEG image; image content is not interpreted.\n" +
 			"Codex reads support cat <path> and sed -n '1,220p' <path>; Claude uses Read.\n" +
-			"Only the documented reduced trace variants are supported. Inspection never\n" +
+			"Only the documented recording variants are supported. Inspection never\n" +
 			"executes commands or applies changes. Completion is not verified task success.\n\n" +
 			"Compatibility errors offer a prefilled public GitHub issue URL. The CLI makes\n" +
 			"no network request and submits nothing. Review the draft and redact any trace\n" +
@@ -36,10 +40,30 @@ func NewCommand(version string) *cobra.Command {
 			"supported recorded turn from a session. Selection preserves physical source\n" +
 			"lines and separates explanatory context from measured activity. Without\n" +
 			"--turn, prepared-trace validation is unchanged; --format alone does not\n" +
-			"enable session import.",
-		Args: cobra.ExactArgs(1),
+			"enable session import.\n\n" +
+			"Omit the path to find a turn in the shared terminal picker and inspect it.\n" +
+			"Escape cancels without a report. In scripts, supply a trace path.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r, err := inspection.Read(args[0], format, selector, version)
+			path, selectedFormat, selectedTurn := "", format, selector
+			if len(args) == 0 {
+				if cmd.Flags().Changed("turn") {
+					return fmt.Errorf("--turn requires a trace path; omit --turn to select interactively")
+				}
+				row, err := pickRecordedTurn(cmd, format, "inspect")
+				if errors.Is(err, selection.ErrCancelled) {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+				path = row.Entry.Source.Path
+				selectedFormat = row.Entry.Source.Family
+				selectedTurn = selectedFormat + ":" + row.Turn.ID
+			} else {
+				path = args[0]
+			}
+			r, err := inspection.Read(path, selectedFormat, selectedTurn, version)
 			if err != nil {
 				return err
 			}

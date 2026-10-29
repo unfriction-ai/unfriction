@@ -32,27 +32,12 @@ func ExitCode(err error) int {
 func selectCommand() *cobra.Command {
 	format, output := "auto", "posix"
 	cmd := &cobra.Command{Use: "select", Short: "Find a recorded turn and emit an inspect command", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		if format != "auto" && format != "codex" && format != "claude-code" {
-			return fmt.Errorf("unsupported format %q; use auto, codex, or claude-code", format)
-		}
 		if output != "posix" && output != "zsh" {
 			return fmt.Errorf("unsupported output %q; use posix or zsh", output)
 		}
-		cfg, err := recordings.DefaultConfig()
-		if err != nil {
-			return err
-		}
-		cfg.Format = format
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		row, err := selection.Run(cmd.Context(), selection.Options{CWD: cwd, Sources: cfg})
+		row, err := pickRecordedTurn(cmd, format, "use")
 		if errors.Is(err, selection.ErrCancelled) {
 			return exitError{code: 130}
-		}
-		if errors.Is(err, selection.ErrNoTerminal) {
-			return exitError{code: 2, cause: err}
 		}
 		if err != nil {
 			return err
@@ -67,4 +52,25 @@ func selectCommand() *cobra.Command {
 	cmd.Flags().StringVar(&format, "format", "auto", "Recording family: auto, codex, or claude-code")
 	cmd.Flags().StringVar(&output, "output", "posix", "Quoted command syntax: posix or zsh")
 	return cmd
+}
+
+// Both standalone selection and pathless inspection use the same typed picker.
+func pickRecordedTurn(cmd *cobra.Command, format, acceptLabel string) (selection.Row, error) {
+	if format != "auto" && format != "codex" && format != "claude-code" {
+		return selection.Row{}, fmt.Errorf("unsupported format %q; use auto, codex, or claude-code", format)
+	}
+	cfg, err := recordings.DefaultConfig()
+	if err != nil {
+		return selection.Row{}, err
+	}
+	cfg.Format = format
+	cwd, err := os.Getwd()
+	if err != nil {
+		return selection.Row{}, err
+	}
+	row, err := selection.Run(cmd.Context(), selection.Options{CWD: cwd, Sources: cfg, AcceptLabel: acceptLabel})
+	if errors.Is(err, selection.ErrNoTerminal) {
+		return selection.Row{}, exitError{code: 2, cause: err}
+	}
+	return row, err
 }
