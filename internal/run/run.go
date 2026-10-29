@@ -14,12 +14,20 @@ const (
 )
 
 type Run struct {
+	Selection      *Selection
 	ModelUsage     []ModelUsage
 	Events         []Event
 	Coverage       []Coverage
 	Task           string
 	FinalResponse  string
 	ExecutionState ExecutionState
+}
+
+// Selection describes provenance and explanatory context, never measured events.
+type Selection struct {
+	Path, Session, Turn        string
+	Position, Total            int
+	PreviousAgent, EarlierUser string
 }
 
 // Event keeps source order; SourceID and SourceLine retain input provenance.

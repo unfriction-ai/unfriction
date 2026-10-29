@@ -28,6 +28,35 @@ Execution state: COMPLETED
 Completion describes execution termination, not verified task success.
 ```
 
+## Select a turn from a session
+
+An explicit turn selector opts into session import. Use the recorded Codex turn
+ID or Claude user-message UUID, prefixed with the family; display positions are
+not selectors:
+
+```sh
+./unfriction inspect --format codex --turn codex:second -- fixtures/sessions/codex.jsonl
+./unfriction inspect --format claude-code --turn claude-code:second -- fixtures/sessions/claude.jsonl
+```
+
+These synthetic examples select the second prompt, `Go`, and report only its
+following activity. The report labels previous agent and earlier user context
+separately, includes session/turn provenance, and retains physical source lines.
+Session import never writes a reduced trace or executes recorded commands.
+
+The same command without `--turn` keeps strict prepared-trace validation; a whole
+multi-turn recording is not accepted implicitly. `--format` alone does not enable
+session import. Unsupported selected tools, unresolved ancestry, sidechains,
+conflicting message identities, and ambiguous records return diagnostics rather
+than a fabricated report. A recording changed during inspection requires retry
+or reselection. Optional usage measurements keep their existing scope/version
+limits.
+
+See [current session evidence](fixtures/sessions/current-formats.md) for the
+sanitized current-format examples, verified envelope relationships, and remaining
+limitations. Shell selection and automatic local discovery are separate planned
+features; explicit turn selection does not require them.
+
 Trace-family detection is automatic by default (`--format auto`). The detector
 reads at most 64 KiB and inspects at most 64 nonblank complete JSONL records for
 unambiguous structural evidence. It checks the whole bounded prefix for conflicts,
@@ -50,7 +79,7 @@ The acquisition path supports the observed Codex `exec_command` form
 reads return explicit PNG/JPEG observation metadata; image content is not
 interpreted. Recorded user rejection remains visible as a result. See the
 [observed tool variants](fixtures/tool-variants/README.md) for exact limits.
-It is not a general shell classifier or a full-session importer. Reduce recordings to one task first; see
+It is not a general shell classifier. Without `--turn`, reduce recordings to one task first; see
 [fixture provenance and input contracts](fixtures/README.md) for the precise
 supported variants and sanitization limitations.
 

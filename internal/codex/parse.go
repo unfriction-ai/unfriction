@@ -2,7 +2,6 @@
 package codex
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 	"github.com/unfriction-ai/unfriction/internal/run"
+	"github.com/unfriction-ai/unfriction/internal/source"
 )
 
 type event struct {
@@ -34,7 +34,11 @@ type event struct {
 
 // Parse reconstructs a single turn. A final answer does not prove execution
 // completion: only a matching task_complete event can set Completed.
-func Parse(input io.Reader) (result run.Run, parseErr error) {
+func Parse(input io.Reader) (run.Run, error) {
+	return parse(source.Reader(input), false)
+}
+
+func parse(scanner *source.Cursor, sessionMode bool) (result run.Run, parseErr error) {
 	currentLine := 0
 	var currentRecord diagnostic.Record
 	reportFailure := true
@@ -44,14 +48,13 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		}
 	}()
 	r := run.Run{ExecutionState: run.Incomplete}
-	scanner := bufio.NewScanner(input)
-	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	var turnID string
 	var hasTask, hasFinal bool
 	var structured, legacy bool
 	var items completedItems
 	var usage usageCollector
-	for line := 1; scanner.Scan(); line++ {
+	for scanner.Scan() {
+		line := scanner.Line()
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
 		}
@@ -67,7 +70,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		p := e.Payload
 		usage.consume(scanner.Bytes(), turnID != "" && r.ExecutionState != run.Completed, line)
 		if e.Type == "event_msg" && p.Type == "item_completed" {
-			if legacy {
+			if legacy && !sessionMode {
 				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: mixed legacy and structured representations are unsupported; supply one representation", line))
 			}
 			structured = true
@@ -80,7 +83,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		legacyTool := e.Type == "response_item" && (strings.HasSuffix(p.Type, "_call") || strings.HasSuffix(p.Type, "_call_output"))
 		legacyMessage := e.Type == "event_msg" && (p.Type == "user_message" || p.Type == "agent_message")
 		if legacyTool || legacyMessage {
-			if structured {
+			if structured && !sessionMode {
 				return run.Run{}, diagnostic.Unsupported(fmt.Errorf("line %d: mixed legacy and structured representations are unsupported; supply one representation", line))
 			}
 			legacy = true
