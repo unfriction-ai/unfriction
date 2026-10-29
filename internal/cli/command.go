@@ -48,6 +48,6 @@ func NewCommand(version string) *cobra.Command {
 	}
 	inspect.Flags().StringVar(&format, "format", "auto", "Input format: auto, codex, or claude-code (explicit family bypasses detection)")
 	inspect.Flags().StringVar(&selector, "turn", "", "Select one recorded turn: codex:<turn-id> or claude-code:<user-uuid>")
-	root.AddCommand(inspect)
+	root.AddCommand(inspect, selectCommand())
 	return root
 }

@@ -283,6 +283,7 @@ func readSession(input io.Reader) (sessionGraph, error) {
 		if parent != nil {
 			previous := g.owner[*parent]
 			if previous >= 0 && previous < i {
+				t.PreviousTurnID = g.doc.Turns[previous].ID
 				t.PreviousAgent = g.doc.Turns[previous].Final
 				t.EarlierUser = g.doc.Turns[previous].Prompt
 			}

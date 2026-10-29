@@ -93,6 +93,7 @@ func Summarize(input io.Reader) (session.Document, error) {
 			t := session.Turn{ID: p.TurnID, Start: i, End: len(records), Timestamp: meta.Timestamp}
 			if len(d.Turns) > 0 {
 				prev := d.Turns[len(d.Turns)-1]
+				t.PreviousTurnID = prev.ID
 				t.PreviousAgent = prev.Final
 				t.EarlierUser = prev.Prompt
 			}
