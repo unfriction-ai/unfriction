@@ -10,6 +10,16 @@ import (
 
 func Write(w io.Writer, r run.Run) error {
 	var b strings.Builder
+	if s := r.Selection; s != nil {
+		fmt.Fprintf(&b, "Selected turn:\nSource: %s\nSession: %s\nTurn %d of %d: %s\n", s.Path, s.Session, s.Position, s.Total, s.Turn)
+		if s.PreviousAgent != "" {
+			fmt.Fprintf(&b, "Previous agent: %s\n", s.PreviousAgent)
+		}
+		if s.EarlierUser != "" {
+			fmt.Fprintf(&b, "Earlier user: %s\n", s.EarlierUser)
+		}
+		b.WriteString("Surrounding context is explanatory and excluded from selected-turn measurements.\n\n")
+	}
 	fmt.Fprintf(&b, "Task:\n%s\n\n", r.Task)
 	if len(r.Events) > 0 {
 		heading := "Context events:\n"
@@ -21,6 +31,9 @@ func Write(w io.Writer, r run.Run) error {
 		}
 		b.WriteString(heading)
 		for i, e := range r.Events {
+			if r.Selection != nil {
+				fmt.Fprintf(&b, "Recorded event: %s (source line %d)\n", e.SourceID, e.SourceLine)
+			}
 			if e.Kind == run.Acquisition {
 				fmt.Fprintf(&b, "%d. Acquisition %s: %s\n", i+1, e.AcquisitionID, e.Target)
 			} else if e.Kind == run.Action {

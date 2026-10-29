@@ -1,0 +1,8 @@
+{"type":"user","uuid":"first","parentUuid":null,"sessionId":"session-claude","version":"2.1.302","cwd":"/workspace/example","gitBranch":"feature/validation","message":{"role":"user","content":"Read earlier.md and plan validation."}}
+{"type":"assistant","uuid":"old-call","parentUuid":"first","sessionId":"session-claude","message":{"role":"assistant","content":[{"type":"tool_use","id":"old-read","name":"Read","input":{"file_path":"earlier.md"}}],"stop_reason":"tool_use"}}
+{"type":"user","uuid":"old-result","parentUuid":"old-call","sessionId":"session-claude","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"old-read","content":"EARLIER_PAYLOAD"}]}}
+{"type":"assistant","uuid":"old-final","parentUuid":"old-result","sessionId":"session-claude","message":{"role":"assistant","content":[{"type":"text","text":"I will read selected.md to check validation."}],"stop_reason":"end_turn"}}
+{"type":"user","uuid":"second","parentUuid":"old-final","sessionId":"session-claude","message":{"role":"user","content":"Go"}}
+{"type":"assistant","uuid":"selected-call","parentUuid":"second","sessionId":"session-claude","message":{"role":"assistant","content":[{"type":"tool_use","id":"selected-read","name":"Read","input":{"file_path":"selected.md"}}],"stop_reason":"tool_use"}}
+{"type":"user","uuid":"selected-result","parentUuid":"selected-call","sessionId":"session-claude","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"selected-read","content":"SELECTED_PAYLOAD"}]}}
+{"type":"assistant","uuid":"selected-final","parentUuid":"selected-result","sessionId":"session-claude","message":{"role":"assistant","content":[{"type":"text","text":"Validation checked."}],"stop_reason":"end_turn"}}

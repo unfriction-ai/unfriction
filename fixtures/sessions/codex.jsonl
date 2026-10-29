@@ -1,0 +1,13 @@
+{"type":"session_meta","payload":{"id":"session-codex","cli_version":"0.163.0","cwd":"/workspace/example","git":{"branch":"feature/validation"}}}
+{"type":"event_msg","payload":{"type":"task_started","turn_id":"first"}}
+{"type":"event_msg","payload":{"type":"user_message","message":"Read earlier.md and plan validation."}}
+{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"cat earlier.md\"}","call_id":"old-read"}}
+{"type":"response_item","payload":{"type":"function_call_output","call_id":"old-read","output":"Chunk ID: old\nProcess exited with code 0\nOutput:\nEARLIER_PAYLOAD"}}
+{"type":"event_msg","payload":{"type":"agent_message","phase":"final_answer","message":"I will read selected.md to check validation."}}
+{"type":"event_msg","payload":{"type":"task_complete","turn_id":"first","last_agent_message":"I will read selected.md to check validation."}}
+{"type":"event_msg","payload":{"type":"task_started","turn_id":"second"}}
+{"type":"event_msg","payload":{"type":"user_message","message":"Go"}}
+{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"cat selected.md\"}","call_id":"selected-read"}}
+{"type":"response_item","payload":{"type":"function_call_output","call_id":"selected-read","output":"Chunk ID: selected\nProcess exited with code 0\nOutput:\nSELECTED_PAYLOAD"}}
+{"type":"event_msg","payload":{"type":"agent_message","phase":"final_answer","message":"Validation checked."}}
+{"type":"event_msg","payload":{"type":"task_complete","turn_id":"second","last_agent_message":"Validation checked."}}

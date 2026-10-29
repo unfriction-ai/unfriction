@@ -2,7 +2,6 @@
 package claude
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/unfriction-ai/unfriction/internal/diagnostic"
 	"github.com/unfriction-ai/unfriction/internal/run"
+	"github.com/unfriction-ai/unfriction/internal/source"
 )
 
 type event struct {
@@ -37,7 +37,11 @@ type block struct {
 	Text      string          `json:"text"`
 }
 
-func Parse(input io.Reader) (result run.Run, parseErr error) {
+func Parse(input io.Reader) (run.Run, error) {
+	return parse(source.Reader(input), false)
+}
+
+func parse(scanner *source.Cursor, sessionMode bool) (result run.Run, parseErr error) {
 	currentLine := 0
 	var currentRecord diagnostic.Record
 	reportFailure := true
@@ -47,13 +51,12 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		}
 	}()
 	r := run.Run{ExecutionState: run.Incomplete}
-	scanner := bufio.NewScanner(input)
-	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	session := ""
 	var pointers []navigationPointer
 	var nodes []navigationNode
 	var usage usageCollector
-	for line := 1; scanner.Scan(); line++ {
+	for scanner.Scan() {
+		line := scanner.Line()
 		if strings.TrimSpace(scanner.Text()) == "" {
 			continue
 		}
@@ -194,10 +197,16 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 		case "": // A text message without explicit termination does not prove completion.
 		case "tool_use":
 			if !hasCall {
+				if sessionMode && len(texts) == 0 {
+					continue
+				}
 				return fail("tool_use stop reason without acquisition or action")
 			}
 		case "end_turn":
 			final := strings.Join(texts, "\n")
+			if sessionMode && e.Type == "assistant" && !hasCall && len(texts) == 0 {
+				continue
+			}
 			if e.Type != "assistant" || hasCall || strings.TrimSpace(final) == "" {
 				return fail("end_turn requires a final text response")
 			}
@@ -214,7 +223,7 @@ func Parse(input io.Reader) (result run.Run, parseErr error) {
 	if r.Task == "" {
 		return run.Run{}, fmt.Errorf("trace does not contain a task")
 	}
-	if err := validateNavigation(pointers, nodes); err != nil {
+	if err := validateNavigation(pointers, nodes); err != nil && !sessionMode {
 		currentLine = 0
 		currentRecord = diagnostic.Record{}
 		return run.Run{}, err
