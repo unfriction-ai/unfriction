@@ -54,8 +54,13 @@ limits.
 
 See [current session evidence](fixtures/sessions/current-formats.md) for the
 sanitized current-format examples, verified envelope relationships, and remaining
-limitations. Shell selection and automatic local discovery are separate planned
-features; explicit turn selection does not require them.
+limitations. Use `unfriction select` from a Git worktree to find a locally recorded turn by
+its context and emit a quoted inspect command. It searches Codex and Claude Code
+recordings across the repository's worktrees; Enter accepts without executing
+inspection, and Escape cancels. See [selection usage and supported layouts](docs/recording-selection.md).
+
+Pathless `inspect`, shell Tab integration, and persistent caching are separate
+planned features; explicit turn selection and `select` do not require them.
 
 Trace-family detection is automatic by default (`--format auto`). The detector
 reads at most 64 KiB and inspects at most 64 nonblank complete JSONL records for

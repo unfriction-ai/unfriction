@@ -10,16 +10,17 @@ import (
 )
 
 type Turn struct {
-	ID            string
-	Prompt        string
-	Final         string
-	PreviousAgent string
-	EarlierUser   string
-	Timestamp     string
-	Start         int
-	End           int
-	Completed     bool
-	Aborted       bool
+	ID             string
+	Prompt         string
+	Final          string
+	PreviousTurnID string
+	PreviousAgent  string
+	EarlierUser    string
+	Timestamp      string
+	Start          int
+	End            int
+	Completed      bool
+	Aborted        bool
 }
 
 type Document struct {
