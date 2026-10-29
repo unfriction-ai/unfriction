@@ -32,6 +32,26 @@ accepted command. Redirect stdout to capture it while using the picker. Default
 including quotes, newlines, dollar signs, and backticks. Bash/fish-specific output
 modes and Tab integration are separate deliveries. No startup file is modified.
 
+## Inspect immediately after selection
+
+```sh
+unfriction inspect
+unfriction inspect --format claude-code
+```
+
+Omitting the path opens the same picker. Its action is **Enter inspect**: acceptance
+closes the picker and invokes the existing inspection service once, using the
+selected path, family, and recorded turn identity. The report goes to stdout.
+Earlier context and source provenance match explicit selected-turn inspection.
+No shell integration or startup-file changes are required.
+
+Escape or Ctrl+C exits pathless inspection successfully (status 0) with no report;
+standalone `select` still returns 130 on cancellation. Empty discovery remains
+status 1. With no controlling terminal, pathless inspection returns status 2 and
+guidance to provide a trace path. `--turn` requires a path; omit it when using the
+picker. Explicit paths always bypass discovery and retain strict prepared-trace
+validation unless a turn selector is supplied.
+
 ## Discovery and association
 
 | Family | Storage root used by unfriction | Supported layout |
@@ -92,8 +112,8 @@ or command arguments.
 
 No search matches is a visible picker state, distinct from empty discovery.
 Terminal settings are restored on normal acceptance, cancellation, and empty
-results. Existing explicit-path inspection remains noninteractive. Pathless
-`inspect`, Tab adapters, and persistent cache/refresh are subsequent features.
+results. Existing explicit-path inspection remains noninteractive. Tab adapters
+and persistent cache/refresh are subsequent features.
 
 ## Evidence and verification
 

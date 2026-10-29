@@ -59,8 +59,13 @@ its context and emit a quoted inspect command. It searches Codex and Claude Code
 recordings across the repository's worktrees; Enter accepts without executing
 inspection, and Escape cancels. See [selection usage and supported layouts](docs/recording-selection.md).
 
-Pathless `inspect`, shell Tab integration, and persistent caching are separate
-planned features; explicit turn selection and `select` do not require them.
+To select and inspect in one step, run `unfriction inspect` without a path.
+It opens the same picker and inspects your selection when you press Enter.
+Use `--format codex` or `--format claude-code` to filter the picker. Escape or
+Ctrl+C returns successfully without a report. No shell setup is required.
+Scripts without a controlling terminal must supply a trace path.
+
+Shell Tab integration and persistent caching remain separate planned features.
 
 Trace-family detection is automatic by default (`--format auto`). The detector
 reads at most 64 KiB and inspects at most 64 nonblank complete JSONL records for
