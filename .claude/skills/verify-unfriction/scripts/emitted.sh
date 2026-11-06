@@ -1,9 +1,4 @@
 #!/bin/sh
-# Execute the inspect command that a previous `select` drive printed to stdout,
-# exactly as a user would paste it, non-interactively and with isolated env.
-# Usage: emitted.sh RUN_ID LABEL FROM_LABEL [-C repo|other|DIR]
-#   FROM_LABEL is an earlier tui.sh label whose stdout.txt holds the command.
-# Exit status is the emitted command's exit status.
 set -u
 . "$(dirname "$0")/env.sh" "${1:-}"
 label=${2:-}; from=${3:-}
@@ -11,7 +6,7 @@ label=${2:-}; from=${3:-}
 case "$label$from" in *[!A-Za-z0-9._-]*) vu_die "labels may contain only letters, digits, . _ -" ;; esac
 cwd=$VU_REPO
 if [ "${4:-}" = "-C" ]; then
-  case "${5:-}" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER ;; *) cwd=${5:-} ;; esac
+  case "${5:-}" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER_WORKTREE_WITH_SPACE ;; *) cwd=${5:-} ;; esac
 fi
 src=$VU_EVIDENCE/$from/stdout.txt
 [ -s "$src" ] || vu_die "no emitted command in $src"

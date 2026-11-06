@@ -1,9 +1,5 @@
 //go:build darwin || linux
 
-// ptydrive runs one command under a fresh pseudo-terminal that is the child's
-// controlling terminal (so /dev/tty works), plays an ordered list of
-// expect/send steps, and writes evidence files.
-//
 // Usage (interactive, under a PTY):
 //
 //	ptydrive -out DIR [-dir CWD] [-env K=V]... [-timeout 5s] [-rows 35] [-cols 140]
@@ -163,12 +159,11 @@ func main() {
 	if err = pty.Setsize(terminal, &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)}); err != nil {
 		fail("size pty: %v", err)
 	}
-	// Wrap in sh to record terminal settings before and after, proving restoration.
 	before, after := filepath.Join(out, ".stty-before"), filepath.Join(out, ".stty-after")
-	script := `b=$1; a=$2; shift 2; stty -g > "$b"; "$@"; r=$?; stty -g > "$a"; exit "$r"`
+	recordTTYSettingsBeforeAndAfter := `b=$1; a=$2; shift 2; stty -g > "$b"; "$@"; r=$?; stty -g > "$a"; exit "$r"`
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "sh", append([]string{"-c", script, "ptydrive-host", before, after}, command...)...)
+	cmd := exec.CommandContext(ctx, "sh", append([]string{"-c", recordTTYSettingsBeforeAndAfter, "ptydrive-host", before, after}, command...)...)
 	cmd.Dir = dir
 	cmd.Env = append(append(os.Environ(), "TERM=xterm-256color"), env...)
 	var stdout bytes.Buffer
@@ -178,6 +173,9 @@ func main() {
 	if err = cmd.Start(); err != nil {
 		fail("start: %v", err)
 	}
+	// The child inherited this fd. Dropping the parent's copy is what lets
+	// master Read return EOF when the child exits.
+	_ = slave.Close()
 	write("pid.txt", strconv.Itoa(cmd.Process.Pid)+"\n")
 
 	var screen capture
@@ -198,11 +196,7 @@ func main() {
 	var waitErr error
 	done := make(chan struct{})
 	go func() { waitErr = cmd.Wait(); close(done) }()
-	// Close the slave after Wait so the master reader sees EOF, matching
-	// acceptance/select_test.go startTerminal cleanup order.
-	closeSlave := sync.OnceFunc(func() { _ = slave.Close() })
-	drainReader := func() {
-		closeSlave()
+	waitForReader := func() {
 		select {
 		case <-readDone:
 		case <-time.After(time.Second):
@@ -247,7 +241,7 @@ func main() {
 				}
 				select {
 				case <-done:
-					drainReader()
+					waitForReader()
 					raw = screen.snapshot()
 					if s.kind == "expect-new" {
 						raw = raw[min(mark, len(raw)):]
@@ -279,7 +273,7 @@ func main() {
 		cancel()
 		<-done
 	}
-	drainReader()
+	waitForReader()
 	_ = terminal.Close()
 
 	code := 0
@@ -320,9 +314,6 @@ func main() {
 	fmt.Printf("ptydrive: OK exit=%d tty-restored=%s evidence=%s\n", code, restored, out)
 }
 
-// runDetached runs the command in a new session with no controlling terminal
-// and stdin from /dev/null, the way a script or CI job sees unfriction. It
-// returns the command's exit status (or 124 on timeout).
 func runDetached(out, dir string, env, command []string, timeout time.Duration, write func(string, string)) int {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

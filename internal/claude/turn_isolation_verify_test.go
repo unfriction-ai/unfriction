@@ -1,14 +1,5 @@
 //go:build verify
 
-// Bounded exhaustive verification of Claude Code turn isolation.
-//
-// Run with: go test -tags verify ./internal/claude -run Verify
-//
-// The check enumerates every small session graph over a fixed record alphabet,
-// runs ParseTurn for every recorded prompt, and compares the outcome with an
-// independent oracle computed from the abstract graph (not from the adapter's
-// code). The verify-claude-turn-isolation skill documents the properties,
-// bounds, and coverage record.
 package claude
 
 import (
@@ -25,24 +16,24 @@ import (
 	"github.com/unfriction-ai/unfriction/internal/run"
 )
 
-// Record kinds. Each maps to one physical JSONL line in vGraph.json.
 const (
-	kPrompt = iota // user prompt string: starts a turn
-	kCall          // assistant Read tool_use with id t<i>, stop_reason tool_use
-	kFinal         // assistant text, stop_reason end_turn
-	kResult        // user tool_result for tool id t<target>
-	kSystem        // system turn_duration ancestry node (bookkeeping)
+	kPrompt = iota
+	kCall
+	kFinal
+	kResult
+	kSystem
 )
 
 const (
-	parentNull    = -1
-	parentMissing = -2
+	parentNull           = -1
+	parentMissing        = -2
+	unrecordedToolTarget = -1
 )
 
 type vRecord struct {
 	kind      int
-	parent    int // record index, parentNull, or parentMissing
-	target    int // kResult only: index whose tool id t<target> is referenced
+	parent    int
+	target    int
 	sidechain bool
 }
 
@@ -91,12 +82,11 @@ func (g vGraph) recording() string {
 	return strings.Join(lines, "\n")
 }
 
-// oracle is computed only from the abstract graph.
 type oracle struct {
 	g       vGraph
 	cyclic  bool
 	missing bool
-	owner   []int // prompt index owning each record, -1 when none (or cyclic)
+	owner   []int
 }
 
 func newOracle(g vGraph) oracle {
@@ -123,35 +113,37 @@ func newOracle(g vGraph) oracle {
 			}
 			n = g[n].parent
 		}
-		// Cycles and dangling parents anywhere in the chain, prompt or not.
-		seen = map[int]bool{}
-		for n := i; n >= 0; n = g[n].parent {
-			if seen[n] {
-				o.cyclic = true
-				break
-			}
-			seen[n] = true
-			if g[n].parent == parentMissing {
-				o.missing = true
-			}
-		}
+		o.noteCyclesAndDanglingParents(i)
 	}
 	return o
 }
 
-func (o oracle) ancestorOf(a, b int) bool { // a is a strict ancestor of b
-	for n := o.g[b].parent; n >= 0; n = o.g[n].parent {
-		if n == a {
+func (o *oracle) noteCyclesAndDanglingParents(start int) {
+	seen := map[int]bool{}
+	for n := start; n >= 0; n = o.g[n].parent {
+		if seen[n] {
+			o.cyclic = true
+			return
+		}
+		seen[n] = true
+		if o.g[n].parent == parentMissing {
+			o.missing = true
+		}
+	}
+}
+
+func (o oracle) isStrictAncestor(ancestor, descendant int) bool {
+	for n := o.g[descendant].parent; n >= 0; n = o.g[n].parent {
+		if n == ancestor {
 			return true
 		}
-		if n == b {
+		if n == descendant {
 			return false
 		}
 	}
 	return false
 }
 
-// mustReject returns why selecting prompt p must produce a diagnostic, or "".
 func (o oracle) mustReject(p int) string {
 	g := o.g
 	if o.cyclic {
@@ -178,7 +170,7 @@ func (o oracle) mustReject(p int) string {
 		}
 	}
 	for k := 1; k < len(assistants); k++ {
-		if !o.ancestorOf(assistants[k-1], assistants[k]) {
+		if !o.isStrictAncestor(assistants[k-1], assistants[k]) {
 			return "branched assistant continuations in selected turn"
 		}
 	}
@@ -206,7 +198,6 @@ type eventKey struct {
 	line int
 }
 
-// checkReport verifies an accepted report against the oracle.
 func (o oracle) checkReport(p int, r run.Run, turnIndex int, prompts []int, earlierUser, previousAgent string) string {
 	g := o.g
 	if r.Task != fmt.Sprintf("prompt n%d", p) {
@@ -287,12 +278,6 @@ func (g vGraph) describe() string {
 	return b.String() + "\n  JSONL:\n" + g.recording()
 }
 
-// enumerate calls visit for every graph with 1..n records. Each record picks a
-// kind and a parent: null, a missing uuid, or any record (itself and later
-// records included, so cycles and forward edges occur). Each tool_result then
-// references any recorded call (earlier or later) or a tool id no record has.
-// Every graph is visited once with no sidechain and once per record marked as
-// the single sidechain record.
 func enumerate(n int, visit func(vGraph)) {
 	for size := 1; size <= n; size++ {
 		g := make(vGraph, size)
@@ -311,7 +296,7 @@ func enumerate(n int, visit func(vGraph)) {
 				targets(i + 1)
 				return
 			}
-			g[i].target = parentNull // a tool id that no record carries
+			g[i].target = unrecordedToolTarget
 			targets(i + 1)
 			for c := range g {
 				if g[c].kind == kCall {
@@ -336,8 +321,6 @@ func enumerate(n int, visit func(vGraph)) {
 	}
 }
 
-// bound is the largest recording size enumerated. UNFRICTION_VERIFY_RECORDS
-// overrides the per-test default for every test.
 func bound(t *testing.T, n int) int {
 	if v := os.Getenv("UNFRICTION_VERIFY_RECORDS"); v != "" {
 		var err error
@@ -348,8 +331,6 @@ func bound(t *testing.T, n int) int {
 	return n
 }
 
-// parallel runs check over every enumerated graph and reports the first
-// (smallest-first per worker) counterexamples.
 func parallel(t *testing.T, n int, check func(vGraph) string) (cases int64) {
 	jobs := make(chan vGraph, 1024)
 	var mu sync.Mutex
@@ -394,11 +375,9 @@ func prompts(g vGraph) []int {
 	return ps
 }
 
-// TestVerifyTurnIsolation: a selected turn's report contains exactly the
-// records whose parentUuid chain reaches that prompt first, and unsafe
-// ancestry yields a diagnostic instead of a report.
 func TestVerifyTurnIsolation(t *testing.T) {
-	n := bound(t, 4) // 4 records is the smallest bound holding a complete prompt/call/result/final turn
+	const smallestCompletePromptCallResultFinal = 4
+	n := bound(t, smallestCompletePromptCallResultFinal)
 	var accepted int64
 	cases := parallel(t, n, func(g vGraph) string {
 		o := newOracle(g)
@@ -407,24 +386,23 @@ func TestVerifyTurnIsolation(t *testing.T) {
 		for _, p := range ps {
 			r, d, index, err := ParseTurn(strings.NewReader(input), fmt.Sprintf("n%d", p))
 			reason := o.mustReject(p)
-			if err != nil {
-				continue // a diagnostic is always a safe outcome
+			if err == nil {
+				if reason != "" {
+					return fmt.Sprintf("turn n%d accepted despite %s", p, reason)
+				}
+				if index >= len(d.Turns) {
+					return fmt.Sprintf("turn n%d accepted with position %d of %d", p, index, len(d.Turns))
+				}
+				var docPrompts []int
+				for _, turn := range d.Turns {
+					k, _ := strconv.Atoi(strings.TrimPrefix(turn.ID, "n"))
+					docPrompts = append(docPrompts, k)
+				}
+				if msg := o.checkReport(p, r, index, docPrompts, d.Turns[index].EarlierUser, d.Turns[index].PreviousAgent); msg != "" {
+					return msg
+				}
+				atomic.AddInt64(&accepted, 1)
 			}
-			if reason != "" {
-				return fmt.Sprintf("turn n%d accepted despite %s", p, reason)
-			}
-			if index >= len(d.Turns) {
-				return fmt.Sprintf("turn n%d accepted with position %d of %d", p, index, len(d.Turns))
-			}
-			var docPrompts []int
-			for _, turn := range d.Turns {
-				k, _ := strconv.Atoi(strings.TrimPrefix(turn.ID, "n"))
-				docPrompts = append(docPrompts, k)
-			}
-			if msg := o.checkReport(p, r, index, docPrompts, d.Turns[index].EarlierUser, d.Turns[index].PreviousAgent); msg != "" {
-				return msg
-			}
-			atomic.AddInt64(&accepted, 1)
 		}
 		return ""
 	})
@@ -434,9 +412,6 @@ func TestVerifyTurnIsolation(t *testing.T) {
 	}
 }
 
-// TestVerifyLinearSessionsAccepted guards against the trivial way to satisfy
-// isolation: rejecting everything. Every turn of a linear multi-turn session
-// built from supported shapes must produce a report.
 func TestVerifyLinearSessionsAccepted(t *testing.T) {
 	shapes := [][]int{
 		{kPrompt, kFinal},
@@ -485,10 +460,9 @@ func TestVerifyLinearSessionsAccepted(t *testing.T) {
 	}
 }
 
-// TestVerifyDeterministicOutcome: the same recording bytes and selector always
-// give the same outcome: the same report, or the same diagnostic text.
 func TestVerifyDeterministicOutcome(t *testing.T) {
-	n := bound(t, 3) // six parses per selector; 3 records already reach every ancestry diagnostic
+	const recordsReachingEveryAncestryDiagnostic = 3
+	n := bound(t, recordsReachingEveryAncestryDiagnostic)
 	var known, unknown int64
 	parallel(t, n, func(g vGraph) string {
 		input := g.recording()

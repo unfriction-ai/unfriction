@@ -1,13 +1,11 @@
 #!/bin/sh
-# Tear down one verification run: stop any process group this run started that
-# is still alive, then delete the scratch dir (binaries, synthetic repo,
-# worktree, recording homes). Evidence is never deleted.
-# Usage: cleanup.sh RUN_ID
 set -u
 . "$(dirname "$0")/env.sh" "${1:-}"
 
-# Only PIDs recorded by this run's ptydrive (each is a session/process-group
-# leader), and only if the live process still looks like ours.
+kill_process_group() {
+  kill -TERM -- "-$1" 2>/dev/null || true
+}
+
 for f in "$VU_EVIDENCE"/*/pid.txt; do
   [ -f "$f" ] || continue
   pid=$(cat "$f")
@@ -16,7 +14,7 @@ for f in "$VU_EVIDENCE"/*/pid.txt; do
     case "$args" in
       *ptydrive-host*|*"$VU_BIN"*|*"$VU_SCRATCH"*)
         echo "stopping leftover process group $pid ($args)"
-        kill -TERM -- "-$pid" 2>/dev/null || true ;;
+        kill_process_group "$pid" ;;
       *) echo "pid $pid from $f is now an unrelated process; leaving it alone" ;;
     esac
   fi

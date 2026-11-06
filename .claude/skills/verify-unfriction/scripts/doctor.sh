@@ -1,6 +1,4 @@
 #!/bin/sh
-# Read-only health check for one verification run. Exit 0 = worth driving.
-# Usage: doctor.sh RUN_ID
 set -u
 . "$(dirname "$0")/env.sh" "${1:-}"
 

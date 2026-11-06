@@ -1,11 +1,4 @@
 #!/bin/sh
-# Run the built unfriction non-interactively: new session, no controlling
-# terminal, stdin /dev/null, isolated HOME/CODEX_HOME/CLAUDE_CONFIG_DIR.
-# Captures command.txt, stdout.txt, stderr.txt, exit.txt under the evidence dir.
-# Usage: cli.sh RUN_ID LABEL [-C DIR|repo|other] -- UNFRICTION_ARGS...
-#   default cwd is the unfriction checkout, so fixtures/... paths resolve.
-#   -C repo / -C other select the synthetic worktrees.
-# Exit status is unfriction's exit status (124 if killed after 10s).
 set -u
 . "$(dirname "$0")/env.sh" "${1:-}"
 label=${2:-}; [ -n "$label" ] || vu_die "missing LABEL"
@@ -13,7 +6,7 @@ case "$label" in *[!A-Za-z0-9._-]*) vu_die "LABEL may contain only letters, digi
 shift 2
 cwd=$VU_SOURCE
 if [ "${1:-}" = "-C" ]; then
-  case "$2" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER ;; *) cwd=$2 ;; esac
+  case "$2" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER_WORKTREE_WITH_SPACE ;; *) cwd=$2 ;; esac
   shift 2
 fi
 [ "${1:-}" = "--" ] || vu_die "expected -- before unfriction arguments"

@@ -1,12 +1,4 @@
 #!/bin/sh
-# Drive an interactive unfriction command (select, pathless inspect) under a
-# fresh PTY that is its controlling terminal, with isolated recordings.
-# Usage: tui.sh RUN_ID LABEL [-C repo|other|DIR] [steps...] -- unfriction ARGS...
-#   default cwd is the synthetic repo (current worktree).
-#   steps: -expect TEXT | -expect-new TEXT | -send TEXT | -key NAME | -want-exit N | -timeout D
-#   The run's bin dir is first on PATH, so `unfriction` is the build under test.
-# Writes command.txt steps.log transcript.raw screen.txt stdout.txt exit.txt
-# tty-restored.txt pid.txt under the evidence dir. Exit 0 = every step and -want-exit passed.
 set -u
 . "$(dirname "$0")/env.sh" "${1:-}"
 label=${2:-}; [ -n "$label" ] || vu_die "missing LABEL"
@@ -14,7 +6,7 @@ case "$label" in *[!A-Za-z0-9._-]*) vu_die "LABEL may contain only letters, digi
 shift 2
 cwd=$VU_REPO
 if [ "${1:-}" = "-C" ]; then
-  case "$2" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER ;; *) cwd=$2 ;; esac
+  case "$2" in repo) cwd=$VU_REPO ;; other) cwd=$VU_OTHER_WORKTREE_WITH_SPACE ;; *) cwd=$2 ;; esac
   shift 2
 fi
 [ -x "$VU_BIN/ptydrive" ] || vu_die "not launched; run launch.sh $RUN_ID"
